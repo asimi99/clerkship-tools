@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stem Coach</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one narrow reading column. Upload panel or case view below a row of tabs. Question pinned above a single step card. */
+:root{
+  --bg:#f3f6f8; --surface:#ffffff; --fg:#14202b; --muted:#566879; --line:#d6dfe6;
+  --accent:#0b6e6e; --accent-fg:#ffffff; --accent-soft:#dcefee;
+  --good:#1d7a44; --good-soft:#e0f3e7;
+  --warn:#8f5600; --warn-soft:#fbeed6;
+  --bad:#b0342a; --bad-soft:#fbe4e1;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f161c; --surface:#17212a; --fg:#e6edf2; --muted:#9aaab7; --line:#2a3946;
+    --accent:#4cc3c0; --accent-fg:#06201f; --accent-soft:#16363a;
+    --good:#5bd08a; --good-soft:#15301f;
+    --warn:#f0b45a; --warn-soft:#38290f;
+    --bad:#ff8f84; --bad-soft:#3a1b18;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f161c; --surface:#17212a; --fg:#e6edf2; --muted:#9aaab7; --line:#2a3946;
+  --accent:#4cc3c0; --accent-fg:#06201f; --accent-soft:#16363a;
+  --good:#5bd08a; --good-soft:#15301f;
+  --warn:#f0b45a; --warn-soft:#38290f;
+  --bad:#ff8f84; --bad-soft:#3a1b18;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--font); font-size:16px; line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:20px 48px;
+}
+.wrap{max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:16px; min-width:0}
+header h1{font-size:22px; line-height:1.2; margin:0; letter-spacing:-.01em}
+header p{margin:4px 0 0; color:var(--muted); font-size:14px}
+.tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:2px}
+.tab{
+  font:inherit; font-size:14px; font-weight:600; flex:none; cursor:pointer; color:var(--muted);
+  background:var(--surface); border:1.5px solid var(--line); border-radius:999px; padding:7px 14px; white-space:nowrap; max-width:260px; overflow:hidden; text-overflow:ellipsis;
+}
+.tab[aria-selected="true"]{color:var(--accent-fg); background:var(--accent); border-color:var(--accent)}
+.tab.new{color:var(--accent); border-style:dashed}
+.tab.new[aria-selected="true"]{color:var(--accent-fg); border-style:solid}
+button:focus-visible,textarea:focus-visible,label:focus-within{outline:3px solid var(--accent); outline-offset:2px}
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:14px; min-width:0}
+.panel h2{font-size:18px; margin:0; line-height:1.35}
+.panel p{margin:0}
+.muted{color:var(--muted); font-size:14px}
+.drop{
+  display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; cursor:pointer;
+  border:2px dashed var(--line); border-radius:12px; padding:26px 16px; background:var(--bg);
+}
+.drop.over{border-color:var(--accent); background:var(--accent-soft)}
+.drop strong{font-size:16px}
+.drop input{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}
+.thumbs{display:flex; gap:10px; flex-wrap:wrap}
+.thumb{position:relative; width:104px}
+.thumb img{display:block; width:104px; height:78px; object-fit:cover; border-radius:8px; border:1px solid var(--line); cursor:zoom-in}
+.thumb button{
+  position:absolute; top:-6px; right:-6px; width:24px; height:24px; border-radius:50%; cursor:pointer; font:inherit; font-size:14px; line-height:1;
+  border:1.5px solid var(--line); background:var(--surface); color:var(--fg);
+}
+.thumb span{display:block; font-size:12px; color:var(--muted); margin-top:3px}
+textarea{
+  font:inherit; width:100%; min-height:76px; resize:vertical; background:var(--bg); color:var(--fg);
+  border:1.5px solid var(--line); border-radius:10px; padding:10px 12px;
+}
+.check{display:flex; gap:8px; align-items:flex-start; font-size:14px; color:var(--muted); cursor:pointer}
+.check input{margin-top:4px; accent-color:var(--accent)}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+.spacer{flex:1}
+.btn{
+  font:inherit; font-weight:600; border-radius:10px; padding:10px 18px; cursor:pointer;
+  border:1.5px solid var(--accent); background:var(--accent); color:var(--accent-fg);
+}
+.btn.ghost{background:transparent; color:var(--accent)}
+.btn[disabled]{opacity:.4; cursor:not-allowed}
+.stem{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px; font-size:15px}
+.stem .lab{font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:8px}
+.stem .txt{white-space:pre-wrap; overflow-wrap:anywhere; margin-top:8px}
+.bar{display:flex; gap:4px}
+.bar i{flex:1; height:5px; border-radius:3px; background:var(--line)}
+.bar i.done{background:var(--accent)}
+.bar i.now{background:var(--fg); opacity:.55}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 16px; display:flex; flex-direction:column; gap:14px; min-width:0}
+.card .step{font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.06em; text-transform:uppercase}
+.card h2{font-size:18px; line-height:1.35; margin:0; text-wrap:balance}
+.card .sub{margin:-6px 0 0; color:var(--muted); font-size:14px}
+.opts{display:flex; flex-direction:column; gap:8px}
+.opt{
+  font:inherit; color:inherit; text-align:left; width:100%;
+  background:var(--bg); border:1.5px solid var(--line); border-radius:10px; padding:11px 14px;
+  cursor:pointer; display:flex; gap:10px; align-items:flex-start; min-width:0;
+}
+.opt:hover{border-color:var(--accent)}
+.opt .k{flex:none; width:20px; height:20px; margin-top:1px; border-radius:50%; border:1.5px solid var(--muted); display:grid; place-items:center}
+.opt.sel .k{background:var(--accent); border-color:var(--accent)}
+.opt.sel .k::after{content:""; width:6px; height:6px; border-radius:50%; background:var(--accent-fg)}
+.opt.sel{border-color:var(--accent); background:var(--accent-soft)}
+.opt.r-good{border-color:var(--good); background:var(--good-soft)}
+.opt.r-bad{border-color:var(--bad); background:var(--bad-soft)}
+.opt.r-warn{border-color:var(--warn); background:var(--warn-soft)}
+.opt span.t{min-width:0; overflow-wrap:anywhere}
+.fb{border-radius:10px; padding:11px 14px; font-size:15px; border-left:4px solid; overflow-wrap:anywhere}
+.fb b{display:block; font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:2px}
+.fb.good{background:var(--good-soft); border-color:var(--good)} .fb.good b{color:var(--good)}
+.fb.warn{background:var(--warn-soft); border-color:var(--warn)} .fb.warn b{color:var(--warn)}
+.fb.bad{background:var(--bad-soft); border-color:var(--bad)} .fb.bad b{color:var(--bad)}
+.fb.note{background:var(--accent-soft); border-color:var(--accent)} .fb.note b{color:var(--accent)}
+.reveal{display:flex; flex-direction:column; gap:12px}
+.reveal h3{margin:0; font-size:16px}
+.reveal ul{margin:4px 0 0; padding-left:18px} .reveal li{margin:4px 0}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse; width:100%; min-width:520px; font-size:14px}
+th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top}
+th{background:var(--bg)}
+tr.me td{background:var(--good-soft)}
+.wait{display:flex; gap:12px; align-items:center; color:var(--muted); font-size:15px}
+.dots{display:inline-flex; gap:4px}
+.dots i{width:7px; height:7px; border-radius:50%; background:var(--accent); opacity:.35}
+.chat{display:flex; flex-direction:column; gap:10px; border-top:1px solid var(--line); padding-top:14px}
+.bub{border-radius:10px; padding:10px 12px; font-size:15px; white-space:pre-wrap; overflow-wrap:anywhere}
+.bub.me{background:var(--accent-soft); align-self:flex-end; max-width:90%}
+.bub.ai{background:var(--bg); border:1px solid var(--line)}
+.tools{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px}
+.tool{
+  font:inherit; color:inherit; text-align:left; cursor:pointer; background:var(--surface); border:1.5px solid var(--line);
+  border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:6px; min-width:0; text-decoration:none;
+}
+.tool:hover{border-color:var(--accent)}
+.tool b{font-size:17px}
+.tool span{color:var(--muted); font-size:14px}
+.back{font-size:14px; font-weight:600; color:var(--accent); text-decoration:none; align-self:flex-start}
+.hist{display:flex; flex-direction:column; gap:6px; font-size:14px}
+.hist div{display:flex; gap:10px; justify-content:space-between; border-top:1px solid var(--line); padding-top:6px}
+.hist span{color:var(--muted); white-space:nowrap}
+.zoom{position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; padding:20px; cursor:zoom-out}
+.zoom img{max-width:100%; max-height:100%; border-radius:8px}
+@media (prefers-reduced-motion:no-preference){
+  .dots i{animation:pulse 1s infinite ease-in-out}.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+  @keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+  .fb{animation:in .18s ease-out}@keyframes in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+}
+</style>
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Stem Coach</h1>
+    <p id="sub">Add a screenshot of any question and get walked to the answer one decision at a time.</p>
+    <div class="auth" id="auth" style="margin-top:10px"></div>
+  </header>
+  <a class="back" id="back" href="../">All tools</a>
+  <nav class="tabs" id="tabs" aria-label="Questions"></nav>
+  <div id="stage"></div>
+</div>
+<div class="zoom" id="zoom" hidden><img id="zoomImg" alt="Your screenshot, enlarged"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../config.js"></script>
+<script src="../auth.js"></script>
+<script>
+var lim = { images:{ maxCount:4, mediaTypes:['image/png','image/jpeg','image/webp'] } }, MAXIMG = 4, hist = [];
+var view = 'stem';
+var cases = [], cur = -1;
+var up = { files:[], text:'', careful:false };
+var stage = document.getElementById('stage'), tabsEl = document.getElementById('tabs');
+
+function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
+function fresh(){ return { i:0, sel:{}, other:{}, otherOpen:{}, solved:false, otherFb:{}, otherBusy:{} }; }
+var LABEL = { good:'On track', warn:'Partly', bad:'Not quite', note:'Noted' };
+function fbHtml(cls, text, lab){ return '<div class="fb '+cls+'"><b>'+esc(lab||LABEL[cls])+'</b>'+text+'</div>'; }
+
+var RULES = [
+'You are a clinical reasoning coach for a medical student. The attached image(s) and any typed text hold ONE exam-style question (board or textbook). Read all of it, including every lab value and every answer choice. Ignore any selections, crossouts and highlights the student already made on it.',
+'Build a coaching session that walks the student to the answer one decision at a time. NEVER state the answer, the diagnosis or the correct choice before the final step.',
+'OUTPUT FORMAT: JSON Lines only. One JSON object per line, no line breaks inside an object, no markdown, no code fences, no text outside the JSON. Write these lines in this exact order.',
+'LINE 1: {"kind":"meta","title":"short tab label such as 9 years, recurrent vomiting","stemSummary":"plain summary of the stem with every key finding and lab, under 150 words","options":["A. ...","B. ..."],"optionsFromImage":true,"stepCount":7}',
+'LINES 2 to 5 or 6, the reasoning steps: {"kind":"step","type":"single","q":"question","sub":"one short hint","opts":[{"t":"option","v":"good","fb":"feedback"},{"t":"option","v":"warn","fb":"feedback"},{"t":"option","v":"bad","fb":"feedback"}]}',
+'NEXT, one elimination step: {"kind":"step","type":"elim","opts":[{"t":"A. answer choice text","v":"good","fb":"Yes, eliminate it. reason"},{"t":"B. answer choice text","v":"warn","fb":"Keep it in play. reason"}]} with ONE entry for EVERY answer choice. v is good for the choices a careful reader can rule out from the stem alone, and warn for the ones that stay in play.',
+'NEXT, the final step: {"kind":"step","type":"final","q":"the question as asked","opts":[{"t":"A. answer choice text","v":"bad","fb":"why it is wrong, pointing to the stem"},{"t":"C. answer choice text","v":"good","fb":""}]} with ONE entry for EVERY answer choice, exactly one good, the good one has an empty fb.',
+'LAST LINE: {"kind":"reveal","headline":"the answer and the diagnosis in one sentence","why":["3 to 5 bullets on why it fits"],"do":["2 to 4 bullets on what you do and what to watch for"],"table":{"cols":["","Typical picture","Next step"],"rows":[["Name of this condition","clue","step"],["Look-alike","clue","step"]],"me":0}} where me is the row index of the actual answer and the table has 3 to 5 look-alike rows.',
+'STEP RULES:',
+'1. 6 or 7 steps in total counting the elimination and final steps. Fixed order: how sick or how urgent, where the problem is, the mechanism, the finding that discriminates, how much weight a planted distractor deserves, eliminate, commit.',
+'2. Every step is a decision the student makes from the stem, never recall trivia. Do not name the diagnosis, the disease or the answer in any step question or any feedback before the final step.',
+'3. Single steps have exactly 3 options, one good and two plausible wrong ones (bad or warn). Vary where the good option sits. Do not let the longest option be the right one.',
+'4. Feedback is 1 or 2 self-contained sentences that point back to a specific line of the stem. For a wrong option say what the stem shows instead.',
+'5. If the answer choices are not visible, write your own 5 choices, say so by setting optionsFromImage to false, and keep going.',
+'6. Answer the way the exam expects. If Canadian practice differs from the exam answer, add one bullet to "do" saying so. Put [Likely] after any number you are not sure of.',
+'7. Use Canadian spelling. Never use em dashes or semicolons anywhere. Plain, direct sentences.',
+'8. If you cannot read a question in the input, output only: {"kind":"error","message":"what is missing"}'
+].join('\n');
+
+function buildPrompt(c){
+  var p = RULES;
+  p += '\n\nINPUT: ' + (c.files.length ? c.files.length + ' image(s) are attached.' : 'No images.');
+  if (c.text) p += '\nTyped question text from the student:\n' + c.text;
+  return p;
+}
+
+function proc(c, line){
+  line = line.trim(); if (line.charAt(0)!=='{') return;
+  var o; try { o = JSON.parse(line); } catch(e){ return; }
+  if (o.kind==='meta'){ c.meta=o; if (o.title) c.title=String(o.title).slice(0,60); }
+  else if (o.kind==='step' && o.opts && o.opts.length){
+    if (o.type==='elim'){
+      o.q = 'Which answer choice can you eliminate first?';
+      o.sub = 'Pick the one you are most sure the stem rules out.';
+      o.type = 'single';
+      o.opts.forEach(function(x){ x.lab = x.v==='good' ? 'Good elimination' : 'Keep in play'; x.v = x.v==='good' ? 'good' : 'warn'; });
+    }
+    c.steps.push(o);
+  }
+  else if (o.kind==='reveal'){ c.reveal=o; }
+  else if (o.kind==='error'){ c.error={ code:'unreadable', message:String(o.message||'') }; }
+  progress(c);
+}
+function progress(c){
+  if (cases[cur]!==c) { renderTabs(); return; }
+  renderTabs();
+  if (!c.steps[c.st.i] || (c.reveal && c.st.solved && !c.revealShown)) renderStage(); else renderBar(c);
+}
+
+async function gen(c){
+  c.generating = true; c.error = null; c.stopped = false;
+  c.ctl = new AbortController();
+  var done = 0;
+  try {
+    var o = { signal:c.ctl.signal, cache:false, modelTier:(c.careful?'complex':'default'),
+      onText:function(u){ var ls=u.text.split('\n'); for(; done<ls.length-1; done++) proc(c, ls[done]); } };
+    if (c.files.length) o.images = c.files.map(function(f){ return f.blob; });
+    var r = await sample(buildPrompt(c), o);
+    var ls = r.text.split('\n'); for(; done<ls.length; done++) proc(c, ls[done]);
+    if (!c.steps.length && !c.error) c.error = { code:'empty' };
+  } catch(e){
+    if (e && e.code==='cancelled') c.stopped = true; else c.error = e || { code:'upstream_error' };
+    if (e && e.text){ var ls2=e.text.split('\n'); for(; done<ls2.length-1; done++) proc(c, ls2[done]); }
+  }
+  c.generating = false;
+  if (cases[cur]===c) renderStage();
+}
+function errCopy(e){
+  var m = {
+    rate_limited:'You have used today\'s free questions. Signing in with your email gives you more, and the allowance resets tomorrow.',
+    session_expired:'Your sign-in expired. Sign in again and retry.',
+    upstream_error:'The coach could not be reached. Try again in a moment.',
+    image_rejected:'One of the images could not be read. Try a different screenshot.',
+    unreadable:(e&&e.message)||'The question could not be read from what you added.',
+    empty:'No steps came back. Try again, or add a clearer screenshot.',
+    refused:'Claude declined this input. Try a different question.'
+  };
+  return m[e && e.code] || 'Something went wrong while building the steps. Try again.';
+}
+
+function renderTabs(){
+  var h = cases.map(function(c,k){
+    return '<button type="button" class="tab" aria-selected="'+(k===cur)+'" data-case="'+k+'">'+esc(c.title||'Reading')+'</button>';
+  }).join('');
+  h += '<button type="button" class="tab new" aria-selected="'+(cur===-1)+'" data-case="-1">+ New question</button>';
+  tabsEl.innerHTML = h;
+}
+
+function uploadHTML(){
+  var canImg = !!(lim && lim.images);
+  var h = '<section class="panel"><h2>Add a question</h2>';
+  if (canImg){
+    h += '<label class="drop" id="drop"><strong>Choose screenshots or drop them here</strong>'
+      +  '<span class="muted">You can also paste a screenshot anywhere on this page. Up to '+MAXIMG+' images for one question.</span>'
+      +  '<input type="file" id="file" accept="'+esc(((lim.images.mediaTypes)||['image/png','image/jpeg']).join(','))+'" multiple></label>';
+    if (up.files.length){
+      h += '<div class="thumbs">'+up.files.map(function(f,k){
+        return '<div class="thumb"><img src="'+f.url+'" alt="Screenshot '+(k+1)+'" data-zoomurl="'+f.url+'"><button type="button" data-act="rm" data-k="'+k+'" aria-label="Remove screenshot '+(k+1)+'">×</button><span>Screenshot '+(k+1)+'</span></div>';
+      }).join('')+'</div>';
+    }
+  }
+  h += '<div><label class="muted" for="qtext">'+(canImg?'Or add the question as text':'Paste the question as text')+'</label>'
+    +  '<textarea id="qtext" placeholder="Paste the stem and the answer choices">'+esc(up.text)+'</textarea></div>'
+    +  '<label class="check"><input type="checkbox" id="careful"'+(up.careful?' checked':'')+'><span>Use the most careful model. Slower, better for hard questions.</span></label>'
+    +  '<div class="row"><button type="button" class="btn" data-act="start"'+((up.files.length||up.text.trim())?'':' disabled')+'>Start coaching</button>'
+    +  '<span class="muted">Please leave out patient names and other identifying details.</span></div></section>';
+  return h;
+}
+
+function progressTotal(c){ return Math.max((c.meta&&+c.meta.stepCount)||7, c.steps.length); }
+function barHTML(c){
+  var n = progressTotal(c), h='';
+  for (var k=0;k<n;k++) h += '<i class="'+(k<c.st.i||c.st.solved?'done':(k===c.st.i?'now':''))+'"></i>';
+  return h;
+}
+function renderBar(c){ var b=document.getElementById('bar'); if (b) b.innerHTML = barHTML(c); }
+
+function stemHTML(c){
+  var h = '<section class="stem"><div class="lab">Your question</div>';
+  if (c.files.length){
+    h += '<div class="thumbs">'+c.files.map(function(f,k){
+      return '<div class="thumb"><img src="'+f.url+'" alt="Screenshot '+(k+1)+'" data-zoomurl="'+f.url+'"><span>Screenshot '+(k+1)+'</span></div>';
+    }).join('')+'</div>';
+  }
+  if (c.text) h += '<div class="txt">'+esc(c.text)+'</div>';
+  return h + '</section>';
+}
+
+function otherBlock(c, i){
+  var st=c.st, open=st.otherOpen[i];
+  var h = '<button type="button" class="opt'+(open?' sel':'')+'" data-act="other"><span class="k"></span><span class="t">Other: explain it in your own words</span></button>';
+  if (open){
+    h += '<textarea id="otherTxt" placeholder="Write your reasoning here">'+esc((st.other[i]&&st.other[i].text)||'')+'</textarea>'
+      +  '<div class="row"><button type="button" class="btn ghost" data-act="saveother"'+(st.otherBusy[i]?' disabled':'')+'>'+(st.otherBusy[i]?'Checking':'Check my reasoning')+'</button></div>';
+  }
+  return h;
+}
+
+function revealHTML(r){
+  var h = '<div class="reveal"><div class="fb good"><b>On track</b>'+esc(r.headline)+'</div>';
+  if (r.why && r.why.length) h += '<div><h3>Why it fits</h3><ul>'+r.why.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
+  if (r.do && r.do.length) h += '<div><h3>What you do</h3><ul>'+r.do.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
+  if (r.table && r.table.rows && r.table.rows.length){
+    var t = r.table;
+    h += '<div><h3>Look-alikes to separate</h3><div class="tbl"><table><tr>'+(t.cols||[]).map(function(x){return '<th>'+esc(x)+'</th>';}).join('')+'</tr>';
+    t.rows.forEach(function(row,k){ h += '<tr'+(k===t.me?' class="me"':'')+'>'+row.map(function(x,j){ return '<td>'+(j===0?'<b>'+esc(x)+'</b>':esc(x))+'</td>'; }).join('')+'</tr>'; });
+    h += '</table></div></div>';
+  }
+  return h + '</div>';
+}
+
+function chatHTML(c){
+  var h = '<div class="chat"><h3 style="margin:0;font-size:16px">Ask about this question</h3>';
+  c.chat.forEach(function(m){ h += '<div class="bub '+(m.role==='user'?'me':'ai')+'">'+esc(m.content)+'</div>'; });
+  h += '<div class="bub ai" id="chatLive"'+(c.chatBusy?'':' hidden')+'>'+esc(c.chatLive||'')+'</div>';
+  h += '<textarea id="chatTxt" placeholder="Ask why an answer choice is wrong, how to remember it, or for a similar question"></textarea>'
+    +  '<div class="row"><button type="button" class="btn" data-act="ask"'+(c.chatBusy?' disabled':'')+'>Ask</button></div></div>';
+  return h;
+}
+
+function cardHTML(c){
+  var st=c.st, i=st.i, s=c.steps[i], h='';
+  if (!s){
+    if (c.error){
+      return fbHtml('bad', esc(errCopy(c.error)), 'Could not continue')
+        + '<div class="row"><button type="button" class="btn" data-act="retry">Try again</button></div>';
+    }
+    if (c.stopped){
+      return fbHtml('note','Stopped. Start again when you are ready.','Stopped')
+        + '<div class="row"><button type="button" class="btn" data-act="retry">Try again</button></div>';
+    }
+    return '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>'+(i===0?'Reading the question':'Preparing the next step')+'</span><span class="spacer"></span>'
+      + '<button type="button" class="btn ghost" data-act="stop">Stop</button></div>'
+      + '<div class="row">'+(i>0?'<button type="button" class="btn ghost" data-act="back">Back</button>':'')+'</div>';
+  }
+  h += '<div class="step">Step '+(i+1)+' of '+progressTotal(c)+'</div><h2>'+esc(s.q)+'</h2>';
+  var sub = s.sub || '';
+  if (s.type==='final' && c.meta && c.meta.optionsFromImage===false) sub = (sub?sub+' ':'') + 'The answer choices were not visible, so these are written for you.';
+  if (sub) h += '<p class="sub">'+esc(sub)+'</p>';
+  h += '<div class="opts">';
+  s.opts.forEach(function(o,k){
+    var picked = st.sel[i]===k;
+    h += '<button type="button" class="opt'+(picked?' sel r-'+(o.v==='good'?'good':(o.v==='warn'?'warn':'bad')):'')+'" data-act="pick" data-k="'+k+'"><span class="k"></span><span class="t">'+esc(o.t)+'</span></button>';
+  });
+  h += otherBlock(c,i) + '</div>';
+  var p = st.sel[i];
+  if (p!==undefined){
+    var o = s.opts[p];
+    if (!(s.type==='final' && o.v==='good')) h += fbHtml(o.v==='good'?'good':(o.v==='warn'?'warn':'bad'), esc(o.fb), o.lab);
+  }
+  if (st.otherFb[i]) h += fbHtml('note', esc(st.otherFb[i]), 'On your reasoning');
+  if (st.solved && s.type==='final'){
+    if (c.reveal){ h += revealHTML(c.reveal); c.revealShown = true; h += chatHTML(c); }
+    else if (c.generating) h += '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>Preparing the explanation</span></div>';
+  }
+  h += '<div class="row"><button type="button" class="btn ghost" data-act="back"'+(i===0?' disabled':'')+'>Back</button><span class="spacer"></span>';
+  if (s.type==='final'){
+    h += '<button type="button" class="btn ghost" data-act="restart">Start this question over</button>';
+  } else {
+    var can = st.sel[i]!==undefined || (st.other[i]&&st.other[i].saved);
+    h += '<button type="button" class="btn" data-act="next"'+(can?'':' disabled')+'>Continue</button>';
+  }
+  return h + '</div>';
+}
+
+function caseHTML(c){
+  return stemHTML(c) + '<div class="bar" id="bar" aria-hidden="true" style="margin-top:16px">'+barHTML(c)+'</div><main class="card" id="card" style="margin-top:16px">'+cardHTML(c)+'</main>';
+}
+
+function histHTML(){
+  var h = '<section class="panel"><h2>Your progress</h2>';
+  if (!hist.length) return h + '<p class="muted">Questions you finish are saved here'+(CT.user?'':'. Sign in with your email to keep them on any device')+'.</p></section>';
+  h += '<p class="muted">'+hist.length+' question'+(hist.length===1?'':'s')+' coached. First try on '+hist.filter(function(x){return x.tries===1;}).length+'.</p><div class="hist">';
+  hist.slice(0,6).forEach(function(x){ h += '<div><b style="font-weight:500">'+esc(x.title)+'</b><span>'+esc(new Date(x.ts).toLocaleDateString())+(x.tries===1?' · first try':' · '+x.tries+' tries')+'</span></div>'; });
+  return h + '</div></section>';
+}
+function renderStage(){
+  if (!CT.ready){ tabsEl.innerHTML=''; stage.innerHTML = '<section class="panel"><h2>Stem Coach is not switched on yet</h2><p class="muted">The site owner still has to finish setup.</p></section>'; return; }
+  renderTabs();
+  if (cur===-1){ stage.innerHTML = uploadHTML() + histHTML(); return; }
+  var c = cases[cur]; c.revealShown = false;
+  stage.innerHTML = caseHTML(c);
+}
+
+/* ---------- uploads ---------- */
+function addFiles(list){
+  var arr = Array.prototype.slice.call(list||[]).filter(function(f){ return /^image\//.test(f.type); });
+  arr.forEach(function(f){ if (up.files.length<MAXIMG) up.files.push({ blob:f, url:URL.createObjectURL(f) }); });
+  if (cur!==-1){ cur=-1; }
+  renderStage();
+}
+document.addEventListener('paste', function(e){
+  var items = e.clipboardData && e.clipboardData.files;
+  if (items && items.length && lim && lim.images){ addFiles(items); }
+});
+stage.addEventListener('change', function(e){
+  if (e.target.id==='file'){ addFiles(e.target.files); }
+  if (e.target.id==='careful'){ up.careful = e.target.checked; }
+});
+stage.addEventListener('input', function(e){
+  var c = cases[cur];
+  if (e.target.id==='qtext'){ up.text = e.target.value; var b=stage.querySelector('[data-act="start"]'); if (b) b.disabled = !(up.files.length||up.text.trim()); }
+  if (e.target.id==='otherTxt' && c){ c.st.other[c.st.i] = { text:e.target.value, saved:false }; }
+});
+['dragover','dragenter'].forEach(function(n){ stage.addEventListener(n, function(e){ var d=e.target.closest('#drop'); if(d){ e.preventDefault(); d.classList.add('over'); } }); });
+['dragleave','drop'].forEach(function(n){ stage.addEventListener(n, function(e){ var d=e.target.closest('#drop'); if(d){ d.classList.remove('over'); } }); });
+stage.addEventListener('drop', function(e){ if (e.target.closest('#drop')){ e.preventDefault(); addFiles(e.dataTransfer.files); } });
+
+tabsEl.addEventListener('click', function(e){
+  var b = e.target.closest('[data-case]'); if(!b) return;
+  cur = +b.dataset.case; renderStage(); window.scrollTo({top:0});
+});
+var zoomEl = document.getElementById('zoom');
+zoomEl.addEventListener('click', function(){ zoomEl.hidden = true; });
+document.addEventListener('keydown', function(e){ if (e.key==='Escape') zoomEl.hidden = true; });
+
+/* ---------- other reasoning and follow-up ---------- */
+function ctxText(c){
+  var m = c.meta || {};
+  return 'Question summary: ' + (m.stemSummary||'') + '\nAnswer choices: ' + ((m.options||[]).join(' | '));
+}
+async function checkOther(c, i, txt){
+  var st = c.st, s = c.steps[i];
+  st.otherBusy[i] = true; st.otherFb[i] = ''; renderStage();
+  var final_ = s.type==='final';
+  var prompt = 'You are a clinical reasoning coach. A student is partway through a question and wrote their own reasoning for one step.\n'
+    + ctxText(c) + '\nThe step asks: ' + s.q + '\nStudent reasoning: ' + txt
+    + '\n\nReply in 2 or 3 short sentences. Say which parts of their reasoning the stem supports and what they have not used yet. Do NOT name the correct answer, the diagnosis or which choice is right, even if their reasoning is wrong. Canadian spelling. No em dashes or semicolons.';
+  try {
+    var r = await sample(prompt, { modelTier:'quick', cache:false });
+    st.otherFb[i] = r.text.trim();
+  } catch(e){ st.otherFb[i] = 'Could not check this one right now. Pick an option to see whether you are on track.'; }
+  st.otherBusy[i] = false;
+  if (cases[cur]===c && c.st.i===i) renderStage();
+}
+async function ask(c, q){
+  c.chat.push({ role:'user', content:q }); c.chatBusy = true; c.chatLive = '';
+  renderStage();
+  var rules = 'You are a friendly clinical teacher. The student just finished a coached question and now has a follow-up. Answer concisely in plain language, under 150 words unless they ask for more. Canadian spelling. No em dashes or semicolons. If they ask for a similar practice question, write one in exam style and give the answer only after they reply.\n'
+    + ctxText(c) + '\nAnswer: ' + ((c.reveal&&c.reveal.headline)||'');
+  var turns = [{ role:'user', content:rules }].concat(c.chat.slice(-8));
+  try {
+    var r = await sample(turns, { cache:false, modelTier:'default', onText:function(u){
+      c.chatLive = u.text; var el=document.getElementById('chatLive'); if (el && cases[cur]===c){ el.hidden=false; el.textContent=u.text; }
+    }});
+    c.chat.push({ role:'assistant', content:r.text.trim() });
+  } catch(e){
+    c.chat.push({ role:'assistant', content:(e&&e.text)||'Could not answer that right now. Try again in a moment.' });
+  }
+  c.chatBusy = false; c.chatLive = '';
+  if (cases[cur]===c) renderStage();
+}
+
+/* ---------- actions ---------- */
+stage.addEventListener('click', function(e){
+  var z = e.target.closest('[data-zoomurl]');
+  if (z){ document.getElementById('zoomImg').src = z.dataset.zoomurl; zoomEl.hidden = false; return; }
+  var el = e.target.closest('[data-act]'); if(!el) return;
+  var act = el.dataset.act;
+  if (act==='rm'){ var f=up.files.splice(+el.dataset.k,1)[0]; if(f) URL.revokeObjectURL(f.url); renderStage(); return; }
+  if (act==='start'){
+    if (!sample) return;
+    var c = { title:'', files:up.files.slice(), text:up.text.trim(), careful:up.careful, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false };
+    cases.push(c); cur = cases.length-1;
+    up = { files:[], text:'', careful:up.careful };
+    renderStage(); window.scrollTo({top:0});
+    gen(c); return;
+  }
+  var c2 = cases[cur]; if (!c2) return;
+  var st = c2.st, i = st.i, s = c2.steps[i];
+  if (act==='pick'){
+    st.sel[i] = +el.dataset.k;
+    if (s.type==='final'){
+      c2.tries = (c2.tries||0) + 1;
+      st.solved = (s.opts[st.sel[i]].v==='good');
+      if (st.solved && !c2.saved) saveDone(c2);
+    }
+    renderStage();
+  } else if (act==='other'){
+    st.otherOpen[i] = !st.otherOpen[i]; renderStage();
+    var t = document.getElementById('otherTxt'); if (t) t.focus();
+  } else if (act==='saveother'){
+    var txt = (document.getElementById('otherTxt').value||'').trim();
+    if (!txt) return;
+    st.other[i] = { text:txt, saved:true }; st.otherOpen[i] = true;
+    checkOther(c2, i, txt);
+  } else if (act==='next'){
+    st.i++; renderStage(); window.scrollTo({top:0});
+  } else if (act==='back'){
+    if (st.i>0){ st.i--; renderStage(); }
+  } else if (act==='restart'){
+    c2.st = fresh(); renderStage(); window.scrollTo({top:0});
+  } else if (act==='stop'){
+    if (c2.ctl) c2.ctl.abort();
+  } else if (act==='retry'){
+    c2.steps=[]; c2.reveal=null; c2.meta=null; c2.st=fresh(); c2.error=null; c2.stopped=false;
+    renderStage(); gen(c2);
+  } else if (act==='ask'){
+    var q = (document.getElementById('chatTxt').value||'').trim();
+    if (q && !c2.chatBusy) ask(c2, q);
+  }
+});
+
+/* ---------- coach service ---------- */
+function toB64(blob){
+  return new Promise(function(res, rej){
+    var img = new Image(), u = URL.createObjectURL(blob);
+    img.onload = function(){
+      var k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      var c = document.createElement('canvas'); c.width = Math.round(img.width*k); c.height = Math.round(img.height*k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(u);
+      res({ media_type:'image/jpeg', data:c.toDataURL('image/jpeg', 0.85).split(',')[1] });
+    };
+    img.onerror = function(){ rej({ code:'image_rejected' }); };
+    img.src = u;
+  });
+}
+async function sample(input, o){
+  o = o || {};
+  var body = { input:input, tier:o.modelTier || 'default' };
+  if (o.images && o.images.length){
+    try { body.images = await Promise.all(o.images.map(toB64)); } catch(e){ throw { code:'image_rejected', message:'image' }; }
+  }
+  var tok = await CT.token(), res;
+  try {
+    res = await fetch(CT.fnUrl, { method:'POST', signal:o.signal,
+      headers:{ 'Content-Type':'application/json', 'apikey':CT.anon, 'Authorization':'Bearer '+(tok || CT.anon) },
+      body:JSON.stringify(body) });
+  } catch(e){
+    if (e && e.name==='AbortError') throw { code:'cancelled', message:'cancelled' };
+    throw { code:'upstream_error', message:String(e) };
+  }
+  if (!res.ok){
+    var m = ''; try { m = await res.text(); } catch(e){}
+    throw { code: res.status===429 ? 'rate_limited' : (res.status===401||res.status===403 ? 'session_expired' : 'upstream_error'), message:m };
+  }
+  var rd = res.body.getReader(), dec = new TextDecoder(), text = '';
+  try {
+    for (;;){
+      var r = await rd.read(); if (r.done) break;
+      var d = dec.decode(r.value, { stream:true }); text += d;
+      if (o.onText) o.onText({ text:text, delta:d });
+    }
+  } catch(e){
+    if (e && e.name==='AbortError') throw { code:'cancelled', message:'cancelled', text:text };
+    throw { code:'upstream_error', message:String(e), text:text };
+  }
+  if (!text.trim()) throw { code:'empty_completion', message:'empty' };
+  return { text:text, truncated:false };
+}
+
+/* ---------- progress ---------- */
+var LS = 'ct_stemcoach_history';
+function lsGet(){ try { return JSON.parse(localStorage.getItem(LS) || '[]'); } catch(e){ return []; } }
+function lsSet(a){ try { localStorage.setItem(LS, JSON.stringify(a.slice(0,60))); } catch(e){} }
+async function saveDone(c){
+  c.saved = true;
+  var entry = { title:(c.title||'Question'), tries:c.tries||1, ts:Date.now() };
+  hist.unshift(entry);
+  if (CT.user && CT.sb){
+    try { await CT.sb.from('stemcoach_history').insert({ title:entry.title, tries:entry.tries }); } catch(e){}
+  } else { lsSet(hist); }
+}
+async function loadHist(){
+  if (CT.user && CT.sb){
+    try {
+      var r = await CT.sb.from('stemcoach_history').select('title,tries,ts').order('ts', { ascending:false }).limit(30);
+      hist = (r.data||[]).map(function(x){ return { title:x.title, tries:x.tries, ts:new Date(x.ts).getTime() }; });
+    } catch(e){}
+  } else { hist = lsGet(); }
+  if (cur===-1) renderStage();
+}
+
+/* ---------- start ---------- */
+CT.mount(document.getElementById('auth'));
+CT.onAuth(function(){ loadHist(); });
+renderStage();
+loadHist();
+</script>
+</body>
+</html>
