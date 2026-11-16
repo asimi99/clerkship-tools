@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Practice Exams</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#eef1f4;--surface:#fff;--fg:#14202b;--muted:#566879;--line:#cfd8e0;--accent:#1f4e8c;--accent-fg:#fff;--accent-soft:#e1ebf7;--good:#1d7a44;--good-soft:#e0f3e7;--bad:#b0342a;--bad-soft:#fbe4e1;--warn:#8f5600;--bar:#1f4e8c;--font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1820;--surface:#16222d;--fg:#e8eef3;--muted:#9bb0c1;--line:#2a3a48;--accent:#7fb0ea;--accent-fg:#06121f;--accent-soft:#1b2c42;--good:#5fd08a;--good-soft:#14341f;--bad:#ff8a7e;--bad-soft:#3a1b18;--warn:#e7b25c;--bar:#16314f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 var(--font)}
+.wrap{max-width:860px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-left,0px)) 56px}
+h1{font-size:24px;margin:0 0 4px} h2{font-size:17px;margin:0 0 8px}
+.muted{color:var(--muted)} .back{font-size:14px;color:var(--accent);text-decoration:none}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:14px}
+.btn{font:inherit;font-weight:600;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-fg);border-radius:8px;padding:8px 16px}
+.btn.sec{background:var(--surface);color:var(--accent)} .btn:disabled{opacity:.45;cursor:default}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.set{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.set:first-of-type{border-top:0} .set b{font-weight:600;overflow-wrap:anywhere}
+.set .x{margin-left:auto;background:none;border:0;color:var(--bad);cursor:pointer;font:inherit}
+select,input[type=number]{font:inherit;padding:6px 8px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+.bar{background:var(--bar);color:#fff;border-radius:10px 10px 0 0;padding:10px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-weight:600}
+.bar .sp{margin-left:auto} .bar button{font:inherit;font-weight:600;cursor:pointer;border:1.5px solid #fff;background:transparent;color:#fff;border-radius:8px;padding:4px 12px}
+.qbox{background:var(--surface);border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;padding:18px}
+.stem{white-space:pre-wrap;margin-bottom:14px}
+.ch{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1.5px solid transparent;border-radius:8px;cursor:pointer}
+.ch:hover{background:var(--accent-soft)} .ch.on{background:var(--accent-soft);border-color:var(--accent)}
+.ch.right{background:var(--good-soft);border-color:var(--good)} .ch.wrong{background:var(--bad-soft);border-color:var(--bad)}
+.ch input{margin-top:5px} .ch.gone span{text-decoration:line-through;opacity:.5}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.exp{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--accent-soft);white-space:pre-wrap}
+.grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.dot{width:34px;height:34px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:13px;cursor:pointer;position:relative}
+.dot.ans{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)} .dot.cur{outline:2px solid var(--fg)}
+.dot.fl::after{content:"";position:absolute;top:2px;right:2px;width:8px;height:8px;background:#e0a100;border-radius:50%}
+.dot.ok{background:var(--good);color:#fff;border-color:var(--good)} .dot.no{background:var(--bad);color:#fff;border-color:var(--bad)}
+.err{color:var(--bad);margin-top:8px}
+.prog{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;background:var(--accent)}
+</style>
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../">All tools</a>
+  <h1>Practice Exams</h1>
+  <p class="muted" style="margin:0 0 10px">Upload PDFs of questions and answers. The site turns them into an NBME-style online test with a timer, flagging, a question navigator and a score review.</p>
+  <div class="auth" id="auth"></div>
+  <div id="app"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../config.js"></script>
+<script src="../auth.js"></script>
+<script>
+var app = document.getElementById('app');
+var LS = 'ct_exam_sets', LH = 'ct_exam_hist';
+var sets = load(LS), hist = load(LH), picked = {}, jobs = [], opt = { mode:'exam', shuffle:true, count:0, timed:true };
+var ex = null, tick = null;
+function load(k){ try { return JSON.parse(localStorage.getItem(k)||'[]'); } catch(e){ return []; } }
+function save(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
+
+var RULES = 'The attached PDF contains practice exam questions, with answers and possibly explanations (inline, or in an answer key at the end). Extract up to 40 multiple-choice questions, in order. Output ONLY JSON Lines, one JSON object per line, no code fences and no other text. Each line: {"q":"full question stem","choices":["choice text without the letter label", ...],"answer":"A","exp":"short explanation from the PDF, or one concise sentence of your own if the PDF gives none"}. "answer" is the correct choice letter. Use the answer key if there is one. If you cannot find the correct answer for a question, set "answer" to null. Keep lab values and tables in the stem as plain text. Skip questions that cannot be read without a picture. Do not invent questions that are not in the PDF.';
+
+function b64(file){
+  return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(file); });
+}
+async function post(file, onLine){
+  var data = await b64(file), tok = await CT.token();
+  var res = await fetch(CT.fnUrl, { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':CT.anon, 'Authorization':'Bearer '+(tok||CT.anon) },
+    body: JSON.stringify({ input:RULES, tier:'quick', pdfs:[{ data:data }] }) });
+  if (!res.ok){ throw { code: res.status===429?'limit':(res.status===413?'big':'fail') }; }
+  var rd = res.body.getReader(), dec = new TextDecoder(), buf='';
+  for(;;){ var r = await rd.read(); if (r.done) break; buf += dec.decode(r.value,{stream:true});
+    var ls = buf.split('\n'); buf = ls.pop(); ls.forEach(onLine); }
+  if (buf.trim()) onLine(buf);
+}
+function parseLine(l){
+  l = l.trim().replace(/^```(json)?/,'').replace(/```$/,'').trim(); if (!l || l[0]!=='{') return null;
+  try { var o = JSON.parse(l); if (!o.q || !Array.isArray(o.choices) || o.choices.length<2) return null;
+    o.choices = o.choices.map(function(c){ return String(c).replace(/^\(?[A-Ha-h][\).:]\s+/,''); });
+    o.answer = (o.answer && /^[A-Ha-h]$/.test(String(o.answer).trim())) ? String(o.answer).trim().toUpperCase() : null;
+    return { q:String(o.q), choices:o.choices, answer:o.answer, exp:o.exp?String(o.exp):'' }; } catch(e){ return null; }
+}
+async function addFiles(list){
+  var arr = Array.prototype.slice.call(list).filter(function(f){ return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name); });
+  for (var i=0;i<arr.length;i++){
+    var f = arr[i], job = { name:f.name.replace(/\.pdf$/i,''), n:0, err:'', done:false, qs:[] };
+    if (f.size > 20*1024*1024){ job.err='That PDF is over 20 MB. Split it and try again.'; job.done=true; jobs.push(job); continue; }
+    jobs.push(job); render();
+    try { await post(f, function(l){ var q=parseLine(l); if (q){ job.qs.push(q); job.n=job.qs.length; render(); } }); }
+    catch(e){ job.err = e.code==='limit' ? 'You have used today\'s PDF uploads. Sign in with your email for more, or try again tomorrow.' : (e.code==='big' ? 'That PDF is too large.' : 'Could not read that PDF. Try again.'); }
+    job.done = true;
+    if (job.qs.length){ sets.push({ id:Date.now()+'-'+i, name:job.name, qs:job.qs }); save(LS, sets); picked[sets[sets.length-1].id]=true; }
+    else if (!job.err) job.err = 'No questions found in that PDF.';
+    render();
+  }
+}
+
+function render(){
+  if (!CT.ready){ app.innerHTML='<section class="panel"><h2>Not switched on yet</h2><p class="muted">The site owner still has to finish setup.</p></section>'; return; }
+  if (ex){ return ex.done ? renderResults() : renderExam(); }
+  var h = '<section class="panel"><h2>Add PDFs</h2><div class="drop" id="drop">Drop PDFs here or tap to choose. You can add several at once.<input type="file" id="file" accept="application/pdf,.pdf" multiple hidden></div>';
+  h += '<p class="muted" style="font-size:13px;margin:8px 0 0">Best with text PDFs, up to 40 questions each. Questions that depend on a picture are skipped. Only upload material you are allowed to use.</p>';
+  jobs.forEach(function(j){ h += '<div class="set"><b>'+esc(j.name)+'</b><span class="muted">'+(j.err?'':(j.done?j.n+' questions':'Reading... '+j.n+' so far'))+'</span>'+(j.err?'<span class="err">'+esc(j.err)+'</span>':'')+'</div>'; });
+  h += '</section>';
+  h += '<section class="panel"><h2>Your question sets</h2>';
+  if (!sets.length) h += '<p class="muted">Nothing yet. Added sets are saved in this browser.</p>';
+  sets.forEach(function(s){ h += '<label class="set"><input type="checkbox" data-pick="'+s.id+'"'+(picked[s.id]?' checked':'')+'><b>'+esc(s.name)+'</b><span class="muted">'+s.qs.length+' questions</span><button class="x" data-del="'+s.id+'" type="button">Delete</button></label>'; });
+  if (sets.length){
+    var tot = sets.filter(function(s){return picked[s.id];}).reduce(function(a,s){return a+s.qs.length;},0);
+    h += '<div class="row" style="margin-top:12px"><label>Mode <select id="o-mode"><option value="exam"'+(opt.mode==='exam'?' selected':'')+'>Exam (answers at the end)</option><option value="tutor"'+(opt.mode==='tutor'?' selected':'')+'>Tutor (feedback after each)</option></select></label>'
+      +'<label>Questions <input id="o-count" type="number" min="0" max="'+tot+'" value="'+opt.count+'" style="width:80px"> <span class="muted">0 = all ('+tot+')</span></label>'
+      +'<label><input type="checkbox" id="o-shuf"'+(opt.shuffle?' checked':'')+'> Shuffle</label><label><input type="checkbox" id="o-time"'+(opt.timed?' checked':'')+'> Timed (1.5 min each)</label></div>'
+      +'<div style="margin-top:12px"><button class="btn" id="start"'+(tot?'':' disabled')+'>Start exam</button></div>';
+  }
+  h += '</section>';
+  if (hist.length){ h += '<section class="panel"><h2>Past scores</h2>'; hist.slice(0,8).forEach(function(x){ h += '<div class="set"><b>'+x.pct+'%</b><span class="muted">'+x.right+' of '+x.n+' · '+esc(new Date(x.ts).toLocaleDateString())+'</span></div>'; }); h += '</section>'; }
+  app.innerHTML = h;
+}
+app.addEventListener('click', function(e){
+  var t = e.target;
+  if (t.closest('#drop') && !ex){ var f=document.getElementById('file'); if (f) f.click(); return; }
+  if (t.dataset.del){ e.preventDefault(); sets = sets.filter(function(s){return s.id!==t.dataset.del;}); save(LS,sets); render(); return; }
+  if (t.id==='start'){ startExam(); return; }
+  var b = t.closest('[data-a]'); if (!b || !ex) return; act(b.dataset.a, b.dataset.v);
+});
+app.addEventListener('change', function(e){
+  var t=e.target;
+  if (t.id==='file'){ addFiles(t.files); t.value=''; return; }
+  if (t.dataset.pick){ picked[t.dataset.pick]=t.checked; render(); return; }
+  if (t.id==='o-mode') opt.mode=t.value; if (t.id==='o-count') opt.count=+t.value||0; if (t.id==='o-shuf') opt.shuffle=t.checked; if (t.id==='o-time') opt.timed=t.checked;
+  if (t.name==='ch' && ex){ ex.sel[ex.i]=t.value; if (opt.mode==='tutor') ex.shown[ex.i]=false; renderExam(); }
+});
+['dragover','dragenter'].forEach(function(n){ app.addEventListener(n,function(e){ var d=e.target.closest('#drop'); if(d){ e.preventDefault(); d.classList.add('over'); } }); });
+['dragleave','drop'].forEach(function(n){ app.addEventListener(n,function(e){ var d=e.target.closest('#drop'); if(d) d.classList.remove('over'); }); });
+app.addEventListener('drop', function(e){ if (e.target.closest('#drop')){ e.preventDefault(); addFiles(e.dataTransfer.files); } });
+
+function startExam(){
+  var qs = []; sets.forEach(function(s){ if (picked[s.id]) s.qs.forEach(function(q){ qs.push(q); }); });
+  if (opt.shuffle) qs.sort(function(){ return Math.random()-.5; });
+  if (opt.count>0) qs = qs.slice(0,opt.count);
+  if (!qs.length) return;
+  ex = { qs:qs, i:0, sel:{}, flag:{}, shown:{}, strike:{}, left: opt.timed ? Math.round(qs.length*90) : 0, done:false };
+  if (tick) clearInterval(tick);
+  if (opt.timed) tick = setInterval(function(){ ex.left--; if (ex.left<=0){ finish(); } else { var t=document.getElementById('clock'); if (t) t.textContent = fmt(ex.left); } },1000);
+  render(); window.scrollTo({top:0});
+}
+function fmt(s){ var m=Math.floor(s/60), r=s%60; return m+':'+(r<10?'0':'')+r; }
+function act(a,v){
+  if (a==='prev') ex.i=Math.max(0,ex.i-1);
+  if (a==='next') ex.i=Math.min(ex.qs.length-1,ex.i+1);
+  if (a==='go') ex.i=+v;
+  if (a==='flag') ex.flag[ex.i]=!ex.flag[ex.i];
+  if (a==='check') ex.shown[ex.i]=true;
+  if (a==='end'){ var un=ex.qs.length-Object.keys(ex.sel).length; if (un && !ex.confirm){ ex.confirm=true; renderExam(); return; } finish(); return; }
+  if (a==='cancel'){ ex.confirm=false; }
+  if (a==='quit'){ if (tick) clearInterval(tick); ex=null; render(); return; }
+  if (a==='strike'){ var k=ex.i+':'+v; ex.strike[k]=!ex.strike[k]; }
+  renderExam();
+}
+function renderExam(){
+  var q = ex.qs[ex.i], L='ABCDEFGH', tutor = opt.mode==='tutor' && ex.shown[ex.i];
+  var h = '<div style="margin-top:14px"><div class="bar"><span>Item '+(ex.i+1)+' of '+ex.qs.length+'</span>'
+    +'<span class="sp"></span>'+(opt.timed?'<span id="clock">'+fmt(ex.left)+'</span>':'')+'<button data-a="flag" type="button">'+(ex.flag[ex.i]?'Unflag':'Flag')+'</button><button data-a="end" type="button">End block</button></div>'
+    +'<div class="qbox"><div class="stem">'+esc(q.q)+'</div>';
+  q.choices.forEach(function(c,k){
+    var l=L[k], cls='ch'+(ex.sel[ex.i]===l?' on':'')+(ex.strike[ex.i+':'+l]?' gone':'');
+    if (tutor && q.answer){ if (l===q.answer) cls='ch right'; else if (ex.sel[ex.i]===l) cls='ch wrong'; }
+    h += '<label class="'+cls+'"><input type="radio" name="ch" value="'+l+'"'+(ex.sel[ex.i]===l?' checked':'')+'><span><b>'+l+'.</b> '+esc(c)+'</span><button type="button" data-a="strike" data-v="'+l+'" class="x" style="margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer" title="Cross out">&#10005;</button></label>';
+  });
+  if (tutor) h += '<div class="exp"><b>'+(q.answer?'Answer: '+q.answer:'No answer key found')+'</b>'+(q.exp?'\n'+esc(q.exp):'')+'</div>';
+  h += '<div class="nav"><button class="btn sec" data-a="prev" type="button"'+(ex.i?'':' disabled')+'>Previous</button><button class="btn" data-a="next" type="button"'+(ex.i<ex.qs.length-1?'':' disabled')+'>Next</button>'
+    +(opt.mode==='tutor' && ex.sel[ex.i] && !ex.shown[ex.i]?'<button class="btn sec" data-a="check" type="button">Check answer</button>':'')+'</div>';
+  if (ex.confirm) h += '<div class="exp" style="background:var(--bad-soft)">'+(ex.qs.length-Object.keys(ex.sel).length)+' unanswered. End the block anyway? <button class="btn" data-a="end" type="button">End block</button> <button class="btn sec" data-a="cancel" type="button">Keep going</button></div>';
+  h += '<div class="grid">'+ex.qs.map(function(_,k){ return '<button type="button" data-a="go" data-v="'+k+'" class="dot'+(ex.sel[k]?' ans':'')+(ex.flag[k]?' fl':'')+(k===ex.i?' cur':'')+'">'+(k+1)+'</button>'; }).join('')+'</div></div></div>';
+  app.innerHTML = h;
+}
+function finish(){
+  if (tick) clearInterval(tick);
+  ex.done = true; ex.filter='all';
+  var gradable=0, right=0; ex.qs.forEach(function(q,k){ if (q.answer){ gradable++; if (ex.sel[k]===q.answer) right++; } });
+  ex.right=right; ex.gradable=gradable;
+  var rec = { pct: gradable?Math.round(100*right/gradable):0, right:right, n:gradable, ts:Date.now() };
+  hist.unshift(rec); save(LH, hist.slice(0,40));
+  if (CT.user && CT.sb){ try { CT.sb.from('exam_history').insert({ pct:rec.pct, correct:rec.right, n:rec.n }).then(function(){}); } catch(e){} }
+  renderResults();
+}
+function renderResults(){
+  var L='ABCDEFGH';
+  var h = '<section class="panel"><h2>Score: '+ex.right+' of '+ex.gradable+(ex.gradable?' ('+Math.round(100*ex.right/ex.gradable)+'%)':'')+'</h2><div class="prog"><i style="width:'+(ex.gradable?100*ex.right/ex.gradable:0)+'%"></i></div>'
+    +'<div class="row" style="margin-top:12px"><select id="rf"><option value="all">All questions</option><option value="wrong"'+(ex.filter==='wrong'?' selected':'')+'>Missed only</option><option value="flag"'+(ex.filter==='flag'?' selected':'')+'>Flagged only</option></select><button class="btn" data-a="quit" type="button">Back to sets</button></div></section>';
+  ex.qs.forEach(function(q,k){
+    var mine=ex.sel[k], ok=q.answer && mine===q.answer;
+    if (ex.filter==='wrong' && (ok||!q.answer)) return; if (ex.filter==='flag' && !ex.flag[k]) return;
+    h += '<section class="panel"><b>'+(k+1)+'. '+(!q.answer?'Not graded':(ok?'Correct':(mine?'Incorrect':'Unanswered')))+(ex.flag[k]?' · Flagged':'')+'</b><div class="stem" style="margin-top:6px">'+esc(q.q)+'</div>';
+    q.choices.forEach(function(c,i){ var l=L[i], cls='ch'; if (l===q.answer) cls+=' right'; else if (l===mine) cls+=' wrong'; h+='<div class="'+cls+'"><span><b>'+l+'.</b> '+esc(c)+(l===mine?' <i>(your answer)</i>':'')+'</span></div>'; });
+    if (q.exp) h += '<div class="exp">'+esc(q.exp)+'</div>'; h += '</section>';
+  });
+  app.innerHTML = h;
+}
+app.addEventListener('change', function(e){ if (e.target.id==='rf' && ex){ ex.filter=e.target.value; renderResults(); } });
+CT.mount(document.getElementById('auth'));
+render();
+</script>
+</body>
+</html>

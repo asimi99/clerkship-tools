@@ -32,3 +32,15 @@ begin
 end $$;
 revoke all on function public.bump_usage(text) from public, anon, authenticated;
 grant execute on function public.bump_usage(text) to service_role;
+
+create table if not exists public.exam_history (
+  id bigint generated always as identity primary key,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  pct int not null, correct int not null, n int not null,
+  ts timestamptz not null default now()
+);
+alter table public.exam_history enable row level security;
+drop policy if exists "own exam read" on public.exam_history;
+drop policy if exists "own exam insert" on public.exam_history;
+create policy "own exam read" on public.exam_history for select to authenticated using (user_id = auth.uid());
+create policy "own exam insert" on public.exam_history for insert to authenticated with check (user_id = auth.uid());

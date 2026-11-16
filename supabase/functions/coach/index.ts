@@ -8,6 +8,8 @@ const CORS = {
 };
 const USER_DAILY = Number(Deno.env.get("USER_DAILY") ?? 60);
 const GUEST_DAILY = Number(Deno.env.get("GUEST_DAILY") ?? 10);
+const PDF_USER_DAILY = Number(Deno.env.get("PDF_USER_DAILY") ?? 15);
+const PDF_GUEST_DAILY = Number(Deno.env.get("PDF_GUEST_DAILY") ?? 3);
 const MODELS: Record<string, string> = {
   quick: Deno.env.get("MODEL_QUICK") ?? "claude-haiku-5-5",
   default: Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5",
@@ -43,7 +45,12 @@ Deno.serve(async (req) => {
   // parse and cap input
   let body: any;
   try { body = await req.json(); } catch { return fail(400, "bad json"); }
+  if (Array.isArray(body.pdfs) && body.pdfs.length) { key = "p" + key; limit = userId ? PDF_USER_DAILY : PDF_GUEST_DAILY; }
   const images = Array.isArray(body.images) ? body.images.slice(0, 4) : [];
+  const pdfs = Array.isArray(body.pdfs) ? body.pdfs.slice(0, 1) : [];
+  for (const p of pdfs) {
+    if (typeof p?.data !== "string" || p.data.length > 28_000_000) return fail(413, "pdf too large");
+  }
   for (const im of images) {
     if (typeof im?.data !== "string" || im.data.length > 3_500_000) return fail(413, "image too large");
   }
@@ -56,7 +63,14 @@ Deno.serve(async (req) => {
     }));
   } else return fail(400, "bad input");
   if (!turns.length || turns[turns.length - 1].role !== "user") return fail(400, "bad input");
-  if (images.length) {
+  if (pdfs.length) {
+    const first = turns.findIndex((t) => t.role === "user");
+    const t = turns[first];
+    t.content = [
+      ...pdfs.map((p: any) => ({ type: "document", source: { type: "base64", media_type: "application/pdf", data: p.data } })),
+      { type: "text", text: t.content },
+    ];
+  } else if (images.length) {
     const first = turns.findIndex((t) => t.role === "user");
     const t = turns[first];
     t.content = [
@@ -78,7 +92,7 @@ Deno.serve(async (req) => {
       "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({ model, max_tokens: 6000, stream: true, messages: turns }),
+    body: JSON.stringify({ model, max_tokens: pdfs.length ? 20000 : 6000, stream: true, messages: turns }),
   });
   if (!up.ok || !up.body) return fail(502, "upstream " + up.status);
 
