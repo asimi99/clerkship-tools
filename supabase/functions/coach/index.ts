@@ -96,21 +96,6 @@ Deno.serve(async (req) => {
   });
   if (!up.ok || !up.body) return fail(502, "upstream " + up.status);
 
-  // turn Anthropic SSE into a plain text stream
-  const dec = new TextDecoder(), enc = new TextEncoder();
-  let buf = "";
-  const out = up.body.pipeThrough(new TransformStream({
-    transform(chunk, ctl) {
-      buf += dec.decode(chunk, { stream: true });
-      const lines = buf.split("\n"); buf = lines.pop() ?? "";
-      for (const l of lines) {
-        if (!l.startsWith("data:")) continue;
-        try {
-          const j = JSON.parse(l.slice(5).trim());
-          if (j.type === "content_block_delta" && j.delta?.type === "text_delta") ctl.enqueue(enc.encode(j.delta.text));
-        } catch { /* ignore */ }
-      }
-    },
-  }));
-  return new Response(out, { headers: { ...CORS, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+  // pass the raw SSE through: parsing here burns edge CPU time and cut long answers off
+  return new Response(up.body, { headers: { ...CORS, "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store" } });
 });

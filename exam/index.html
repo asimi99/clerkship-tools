@@ -66,15 +66,35 @@ var RULES = 'The attached PDF contains practice exam questions, with answers and
 function b64(file){
   return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(file); });
 }
+async function readStream(res, onDelta){
+  // reads the coach stream: raw Anthropic SSE (current) or plain text (older deploy)
+  var rd = res.body.getReader(), dec = new TextDecoder(), buf = '', text = '', mode = null, stop = null, err = null;
+  function ev(l){
+    if (l.indexOf('data:')!==0) return;
+    try { var j = JSON.parse(l.slice(5).trim()); } catch(e){ return; }
+    if (j.type==='content_block_delta' && j.delta && j.delta.type==='text_delta'){ text += j.delta.text; onDelta && onDelta(text, j.delta.text); }
+    else if (j.type==='message_delta' && j.delta && j.delta.stop_reason) stop = j.delta.stop_reason;
+    else if (j.type==='error') err = (j.error && j.error.type) || 'error';
+  }
+  for(;;){
+    var r = await rd.read(); if (r.done) break;
+    var d = dec.decode(r.value, { stream:true });
+    if (mode===null){ var h = (buf+d).replace(/^\s+/,''); if (h.length>=6 || h.length && !/^(e|ev|eve|even|event|d|da|dat|data)$/.test(h)) mode = /^(event:|data:)/.test(h) ? 'sse' : 'text'; }
+    if (mode==='text'){ if (buf){ d = buf + d; buf=''; } text += d; onDelta && onDelta(text, d); continue; }
+    buf += d; if (mode===null) continue;
+    var ls = buf.split('\n'); buf = ls.pop(); ls.forEach(ev);
+  }
+  if (mode!=='text' && buf){ if (mode===null && !/^(event:|data:)/.test(buf.trim())){ text = buf; onDelta && onDelta(text, buf); } else ev(buf); }
+  return { text:text, stop:stop, error:err };
+}
 async function post(file, onLine){
   var data = await b64(file), tok = await CT.token();
   var res = await fetch(CT.fnUrl, { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':CT.anon, 'Authorization':'Bearer '+(tok||CT.anon) },
     body: JSON.stringify({ input:RULES, tier:'quick', pdfs:[{ data:data }] }) });
   if (!res.ok){ throw { code: res.status===429?'limit':(res.status===413?'big':'fail') }; }
-  var rd = res.body.getReader(), dec = new TextDecoder(), buf='';
-  for(;;){ var r = await rd.read(); if (r.done) break; buf += dec.decode(r.value,{stream:true});
-    var ls = buf.split('\n'); buf = ls.pop(); ls.forEach(onLine); }
-  if (buf.trim()) onLine(buf);
+  var seen = 0;
+  var out = await readStream(res, function(t){ var ls = t.split('\n'); for(; seen<ls.length-1; seen++) onLine(ls[seen]); });
+  var ls = out.text.split('\n'); for(; seen<ls.length; seen++) onLine(ls[seen]);
 }
 function parseLine(l){
   l = l.trim().replace(/^```(json)?/,'').replace(/```$/,'').trim(); if (!l || l[0]!=='{') return null;

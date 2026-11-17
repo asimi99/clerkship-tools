@@ -375,6 +375,7 @@ function cardHTML(c){
         + '<div class="row"><button type="button" class="btn" data-act="retry">Try again</button></div>';
     }
     if (c.queued) return '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>Waiting for the questions before it</span></div>';
+    if (!c.generating) return fbHtml('bad','The rest of this question did not come through. Try again to rebuild it.','Cut off') + '<div class="row"><button type="button" class="btn" data-act="retry">Try again</button></div>';
     return '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>'+(i===0?'Reading the question':'Preparing the next step')+'</span><span class="spacer"></span>'
       + '<button type="button" class="btn ghost" data-act="stop">Stop</button></div>'
       + '<div class="row">'+(i>0?'<button type="button" class="btn ghost" data-act="back">Back</button>':'')+'</div>';
@@ -398,6 +399,7 @@ function cardHTML(c){
   if (st.solved && s.type==='final'){
     if (c.reveal){ h += revealHTML(c.reveal); c.revealShown = true; h += chatHTML(c); }
     else if (c.generating || c.queued) h += '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>'+(c.queued?'Waiting for the questions before it':'Preparing the explanation')+'</span></div>';
+    else h += fbHtml('bad','The explanation did not come through. Try again to rebuild this question.','Cut off') + '<div class="row"><button type="button" class="btn" data-act="retry">Try again</button></div>';
   }
   h += '<div class="row"><button type="button" class="btn ghost" data-act="back"'+(i===0?' disabled':'')+'>Back</button><span class="spacer"></span>';
   if (s.type==='final'){
@@ -569,6 +571,27 @@ function toB64(blob){
     img.src = u;
   });
 }
+async function readStream(res, onDelta){
+  // reads the coach stream: raw Anthropic SSE (current) or plain text (older deploy)
+  var rd = res.body.getReader(), dec = new TextDecoder(), buf = '', text = '', mode = null, stop = null, err = null;
+  function ev(l){
+    if (l.indexOf('data:')!==0) return;
+    try { var j = JSON.parse(l.slice(5).trim()); } catch(e){ return; }
+    if (j.type==='content_block_delta' && j.delta && j.delta.type==='text_delta'){ text += j.delta.text; onDelta && onDelta(text, j.delta.text); }
+    else if (j.type==='message_delta' && j.delta && j.delta.stop_reason) stop = j.delta.stop_reason;
+    else if (j.type==='error') err = (j.error && j.error.type) || 'error';
+  }
+  for(;;){
+    var r = await rd.read(); if (r.done) break;
+    var d = dec.decode(r.value, { stream:true });
+    if (mode===null){ var h = (buf+d).replace(/^\s+/,''); if (h.length>=6 || h.length && !/^(e|ev|eve|even|event|d|da|dat|data)$/.test(h)) mode = /^(event:|data:)/.test(h) ? 'sse' : 'text'; }
+    if (mode==='text'){ if (buf){ d = buf + d; buf=''; } text += d; onDelta && onDelta(text, d); continue; }
+    buf += d; if (mode===null) continue;
+    var ls = buf.split('\n'); buf = ls.pop(); ls.forEach(ev);
+  }
+  if (mode!=='text' && buf){ if (mode===null && !/^(event:|data:)/.test(buf.trim())){ text = buf; onDelta && onDelta(text, buf); } else ev(buf); }
+  return { text:text, stop:stop, error:err };
+}
 async function sample(input, o){
   o = o || {};
   var body = { input:input, tier:o.modelTier || 'default' };
@@ -588,19 +611,15 @@ async function sample(input, o){
     var m = ''; try { m = await res.text(); } catch(e){}
     throw { code: res.status===429 ? 'rate_limited' : (res.status===401||res.status===403 ? 'session_expired' : 'upstream_error'), message:m };
   }
-  var rd = res.body.getReader(), dec = new TextDecoder(), text = '';
-  try {
-    for (;;){
-      var r = await rd.read(); if (r.done) break;
-      var d = dec.decode(r.value, { stream:true }); text += d;
-      if (o.onText) o.onText({ text:text, delta:d });
-    }
-  } catch(e){
-    if (e && e.name==='AbortError') throw { code:'cancelled', message:'cancelled', text:text };
-    throw { code:'upstream_error', message:String(e), text:text };
+  var out;
+  try { out = await readStream(res, o.onText ? function(t,d){ o.onText({ text:t, delta:d }); } : null); }
+  catch(e){
+    if (e && e.name==='AbortError') throw { code:'cancelled', message:'cancelled' };
+    throw { code:'upstream_error', message:String(e) };
   }
-  if (!text.trim()) throw { code:'empty_completion', message:'empty' };
-  return { text:text, truncated:false };
+  if (out.error) throw { code:'upstream_error', message:out.error, text:out.text };
+  if (!out.text.trim()) throw { code:'empty_completion', message:'empty' };
+  return { text:out.text, truncated:out.stop==='max_tokens' };
 }
 
 /* ---------- progress ---------- */
