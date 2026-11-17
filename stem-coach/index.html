@@ -76,6 +76,7 @@ textarea{
 .card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 16px; display:flex; flex-direction:column; gap:14px; min-width:0}
 .card .step{font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.06em; text-transform:uppercase}
 .card h2{font-size:18px; line-height:1.35; margin:0; text-wrap:balance}
+.lvl{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin:0 0 6px}.lvl button{font:600 14px var(--font);border:0;background:var(--surface);color:var(--muted);padding:8px 14px;cursor:pointer}.lvl button+button{border-left:1.5px solid var(--line)}.lvl button[aria-checked=true]{background:var(--accent);color:#fff}.lvlhint{margin:0 0 14px;font-size:13.5px}
 .card .sub{margin:-6px 0 0; color:var(--muted); font-size:14px}
 .opts{display:flex; flex-direction:column; gap:8px}
 .opt{
@@ -182,8 +183,20 @@ var RULES = [
 '8. If you cannot read a question in the input, output only: {"kind":"error","message":"what is missing"}'
 ].join('\n');
 
+var LEVELS = [
+ ['guided','Guided','Hints on every step, clear right and wrong options.'],
+ ['harder','Harder','No hints, every wrong option is a real look-alike, fewer basic steps.'],
+ ['hardest','Hardest','Exam pace. Three or four steps that start at the hard decision, four close options each, and feedback that never gives the answer away.']
+];
+var LEVEL = 'guided'; try{ var lv=localStorage.getItem('sc_level'); if(lv && LEVELS.some(function(x){return x[0]===lv})) LEVEL=lv; }catch(e){}
+var LEVEL_RULES = {
+ guided: '',
+ harder: 'DIFFICULTY: HARDER. These rules override STEP RULES 1 and 3. Use 5 steps in total counting elimination and final: skip the how sick step unless urgency is the point of the question. Leave "sub" as an empty string on every step. In single steps all 3 options must be plausible to a strong student, with both wrong options being the classic look-alike or trap for this exact stem (v warn, not bad). Wrong-option feedback says which stem clue it misses but does not name the right option. Ask about the discriminating detail, not the obvious one.',
+ hardest: 'DIFFICULTY: HARDEST. These rules override STEP RULES 1 and 3. Use 4 steps in total counting elimination and final, so only 2 single steps, and they start at the hardest decision in the stem (the discriminating finding and the distractor), never at triage or localisation. Leave "sub" as an empty string. Single steps have exactly 4 options, one good and three close look-alikes, all v warn, written so a student who only half knows the topic picks a wrong one. Wrong-option feedback says only what the stem contradicts, never which option is right. In the elimination step mark only the choices a top student can truly rule out as good.'
+};
 function buildPrompt(c){
   var p = RULES;
+  if (LEVEL_RULES[c.level||LEVEL]) p += '\n' + LEVEL_RULES[c.level||LEVEL];
   p += '\n\nINPUT: ' + (c.files.length ? c.files.length + ' image(s) are attached.' : 'No images.');
   if (c.text) p += '\nTyped question text from the student:\n' + c.text;
   return p;
@@ -254,6 +267,8 @@ function renderTabs(){
 function uploadHTML(){
   var canImg = !!(lim && lim.images);
   var h = '<section class="panel"><h2>Add a question</h2>';
+  h += '<div class="lvl" role="radiogroup" aria-label="Difficulty">'+LEVELS.map(function(l){ return '<button type="button" role="radio" aria-checked="'+(l[0]===LEVEL)+'" data-act="lvl" data-l="'+l[0]+'">'+l[1]+'</button>'; }).join('')+'</div>'
+    + '<p class="muted lvlhint">'+esc(LEVELS.filter(function(l){return l[0]===LEVEL})[0][2])+'</p>';
   if (canImg){
     h += '<label class="drop" id="drop"><strong>Choose screenshots or drop them here</strong>'
       +  '<span class="muted">You can also paste a screenshot anywhere on this page. Up to '+MAXIMG+' images for one question.</span>'
@@ -462,10 +477,11 @@ stage.addEventListener('click', function(e){
   if (z){ document.getElementById('zoomImg').src = z.dataset.zoomurl; zoomEl.hidden = false; return; }
   var el = e.target.closest('[data-act]'); if(!el) return;
   var act = el.dataset.act;
+  if (act==='lvl'){ LEVEL=el.dataset.l; try{localStorage.setItem('sc_level',LEVEL)}catch(x){} renderStage(); return; }
   if (act==='rm'){ var f=up.files.splice(+el.dataset.k,1)[0]; if(f) URL.revokeObjectURL(f.url); renderStage(); return; }
   if (act==='start'){
     if (!sample) return;
-    var c = { title:'', files:up.files.slice(), text:up.text.trim(), careful:up.careful, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false };
+    var c = { title:'', files:up.files.slice(), text:up.text.trim(), careful:up.careful, level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false };
     cases.push(c); cur = cases.length-1;
     up = { files:[], text:'', careful:up.careful };
     renderStage(); window.scrollTo({top:0});
