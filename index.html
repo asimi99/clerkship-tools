@@ -13,7 +13,7 @@ body{font-size:15px;line-height:1.55}
 .home{max-width:1000px;margin:0 auto;padding:44px max(16px,env(safe-area-inset-left,0px)) 64px}
 .hero{margin-bottom:30px}
 .hero h1{font-size:clamp(28px,5vw,40px);line-height:1.12;letter-spacing:-.025em;margin:0 0 10px;text-wrap:balance}
-.hero h1 b{color:var(--accent)}.hero h1 b.si{position:relative;display:inline-block;line-height:1;padding:0 .07em}.hero h1 b.si::before,.hero h1 b.si::after{content:"";position:absolute;left:-.02em;right:-.02em;height:.09em;background:currentColor;border-radius:2px}.hero h1 b.si::before{top:.1em}.hero h1 b.si::after{bottom:.24em}
+.hero h1 b{color:var(--accent)}
 .hero p{margin:0;color:var(--muted);font-size:16px;max-width:58ch}
 .tools{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
 .tool{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;color:inherit;text-decoration:none;box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
@@ -34,7 +34,7 @@ body{font-size:15px;line-height:1.55}
 <body>
 <main class="home">
   <section class="hero">
-    <h1><b>A</b>sim <b class="si">I</b>brahim's Clerkship Tools</h1>
+    <h1><b>A</b>sim <b>I</b>brahim's Clerkship Tools</h1>
     <p>Study tools for clerkship and shelf prep. Use everything as a guest, or create an account to save your progress.</p>
   </section>
   <section class="group"><h2>Main tools</h2><div class="tools" id="main"></div></section>
@@ -63,6 +63,6 @@ draw();
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="./config.js?v=3"></script>
 <script src="./auth.js?v=3"></script>
-<script src="./nav.js?v=7"></script>
+<script src="./nav.js?v=8"></script>
 </body>
 </html>
