@@ -21,7 +21,7 @@ body{
   padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:20px 48px;
 }
-.wrap{max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:16px; min-width:0}
+.wrap{margin:0;padding:24px max(clamp(16px,3vw,40px),env(safe-area-inset-right,0px)) 56px max(clamp(16px,3vw,40px),env(safe-area-inset-left,0px)); display:flex; flex-direction:column; gap:16px; min-width:0}
 header h1{font-size:22px; line-height:1.2; margin:0; letter-spacing:-.01em}
 header p{margin:4px 0 0; color:var(--muted); font-size:14px}
 .tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:2px}
@@ -134,7 +134,7 @@ tr.me td{background:var(--good-soft)}
   .fb{animation:in .18s ease-out}@keyframes in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 }
 </style>
-<link rel="stylesheet" href="../site.css?v=3">
+<link rel="stylesheet" href="../site.css?v=7">
 </head>
 <body>
 <div class="wrap">
@@ -150,7 +150,7 @@ tr.me td{background:var(--good-soft)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="../config.js?v=3"></script>
 <script src="../auth.js?v=3"></script>
-<script src="../nav.js?v=11"></script>
+<script src="../nav.js?v=12"></script>
 <script>
 var lim = { images:{ maxCount:4, mediaTypes:['image/png','image/jpeg','image/webp'] } }, MAXIMG = 4, hist = [];
 var view = 'stem';

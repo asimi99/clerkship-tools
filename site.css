@@ -10,7 +10,7 @@
 [hidden]{display:none!important}
 img{max-width:100%}
 body{background:var(--bg)!important;color:var(--fg);font-family:var(--font)!important;padding-top:0!important;padding-left:0!important;padding-right:0!important;margin:0}
-.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:28px}
+.wrap{padding-left:max(clamp(16px,3vw,40px),env(safe-area-inset-left,0px));padding-right:max(clamp(16px,3vw,40px),env(safe-area-inset-right,0px));padding-top:28px}
 .pagehead{margin:0 0 18px}
 .pagehead h1{font-size:28px;line-height:1.2;letter-spacing:-.02em;margin:0 0 6px;color:var(--fg)}
 .pagehead p{margin:0;color:var(--muted);max-width:62ch}

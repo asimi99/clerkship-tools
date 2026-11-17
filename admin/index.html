@@ -1,0 +1,76 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Usage | Asim Ibrahim's Clerkship Tools</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../site.css?v=7">
+<style>
+main{max-width:980px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:30px;margin:0 0 4px}.muted{color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:20px 0}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tile b{display:block;font-size:26px}.tile span{color:var(--muted);font-size:13px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}td.n{text-align:right;font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}.seg button{font:600 14px Inter,sans-serif;border:0;background:var(--surface);color:var(--muted);padding:7px 14px;cursor:pointer}.seg button+button{border-left:1.5px solid var(--line)}.seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+.bar{height:8px;background:var(--accent);border-radius:4px;min-width:2px}
+</style></head><body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../config.js?v=3"></script>
+<script src="../auth.js?v=3"></script>
+<script src="../nav.js?v=12"></script>
+<main>
+<h1>Usage</h1>
+<p class="muted">Only visible to the site owner. Cost is an estimate at Haiku 5.5 prices. The exact bill is in the Anthropic console.</p>
+<div class="seg" id="range"><button data-d="1">Today</button><button data-d="7" aria-pressed="true">7 days</button><button data-d="30">30 days</button></div>
+<div id="out"><p class="muted" style="margin-top:20px">Loading…</p></div>
+</main>
+<script>
+var COST = { coach: 0.003, pdf: 0.03 }; // USD per request, Haiku 5.5 estimate
+var days = 7, rows = [], users = [];
+function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+function fmt(x){ return '$' + x.toFixed(2); }
+function draw(){
+  var out = document.getElementById('out');
+  var since = new Date(); since.setDate(since.getDate() - (days-1)); var s = since.toISOString().slice(0,10);
+  var r = rows.filter(function(x){ return x.day >= s; });
+  var tot = 0, coach = 0, pdf = 0, people = {}, guests = {}, byDay = {}, byWho = {};
+  r.forEach(function(x){
+    var c = x.n * COST[x.kind]; tot += c; if (x.kind==='pdf') pdf += x.n; else coach += x.n;
+    (x.who.indexOf('guest')===0 ? guests : people)[x.who] = 1;
+    byDay[x.day] = byDay[x.day] || { n:0, c:0 }; byDay[x.day].n += x.n; byDay[x.day].c += c;
+    var w = byWho[x.who] = byWho[x.who] || { coach:0, pdf:0, c:0, last:x.day }; w[x.kind] += x.n; w.c += c; if (x.day > w.last) w.last = x.day;
+  });
+  var h = '<div class="tiles">'
+    + '<div class="tile"><b>'+Object.keys(people).length+'</b><span>Signed-in people who used it</span></div>'
+    + '<div class="tile"><b>'+Object.keys(guests).length+'</b><span>Guests (by network)</span></div>'
+    + '<div class="tile"><b>'+coach+'</b><span>Stem Coach requests</span></div>'
+    + '<div class="tile"><b>'+pdf+'</b><span>Practice Exam PDFs</span></div>'
+    + '<div class="tile"><b>'+fmt(tot)+'</b><span>Estimated cost</span></div>'
+    + '<div class="tile"><b>'+users.length+'</b><span>Accounts total</span></div></div>';
+  var dk = Object.keys(byDay).sort().reverse(), mx = Math.max.apply(null, dk.map(function(k){return byDay[k].n}).concat([1]));
+  h += '<div class="panel"><table><tr><th>Day</th><th>Requests</th><th style="width:40%"></th><th>Est. cost</th></tr>'
+    + (dk.length ? dk.map(function(k){ return '<tr><td>'+k+'</td><td class="n">'+byDay[k].n+'</td><td><div class="bar" style="width:'+(100*byDay[k].n/mx)+'%"></div></td><td class="n">'+fmt(byDay[k].c)+'</td></tr>'; }).join('') : '<tr><td colspan="4" class="muted">No use in this range.</td></tr>')
+    + '</table></div>';
+  var wk = Object.keys(byWho).sort(function(a,b){ return byWho[b].c - byWho[a].c; });
+  h += '<div class="panel"><table><tr><th>Who</th><th>Stem Coach</th><th>PDFs</th><th>Est. cost</th><th>Last used</th></tr>'
+    + (wk.length ? wk.map(function(k){ var w=byWho[k]; return '<tr><td>'+esc(k)+'</td><td class="n">'+w.coach+'</td><td class="n">'+w.pdf+'</td><td class="n">'+fmt(w.c)+'</td><td>'+w.last+'</td></tr>'; }).join('') : '<tr><td colspan="5" class="muted">Nobody yet.</td></tr>')
+    + '</table></div>';
+  h += '<div class="panel"><table><tr><th>Account</th><th>Signed up with</th><th>Joined</th><th>Last sign in</th></tr>'
+    + users.map(function(u){ return '<tr><td>'+esc(u.email)+'</td><td>'+esc(u.provider)+'</td><td>'+String(u.created_at).slice(0,10)+'</td><td>'+String(u.last_sign_in_at||'').slice(0,10)+'</td></tr>'; }).join('')
+    + '</table></div>';
+  out.innerHTML = h;
+}
+document.getElementById('range').addEventListener('click', function(e){
+  var b = e.target.closest('[data-d]'); if (!b) return; days = +b.dataset.d;
+  [].forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x===b); }); draw();
+});
+async function load(user){
+  var out = document.getElementById('out');
+  if (!user){ out.innerHTML = '<p class="muted" style="margin-top:20px">Sign in with the owner account to see usage.</p>'; return; }
+  var a = await CT.sb.rpc('admin_usage', { days: 31 }), b = await CT.sb.rpc('admin_signups');
+  if (a.error || b.error){ out.innerHTML = '<p class="muted" style="margin-top:20px">This account cannot see usage.</p>'; return; }
+  rows = a.data || []; users = b.data || []; draw();
+}
+if (window.CT && CT.ready){ CT.onAuth(load); CT.sb.auth.getSession().then(function(r){ load(r.data.session ? r.data.session.user : null); }); }
+</script>
+</body></html>

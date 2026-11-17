@@ -6,16 +6,16 @@
 <title>Asim Ibrahim's Clerkship Tools</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2040%2040%22%3E%3Crect%20width%3D%2240%22%20height%3D%2240%22%20rx%3D%2210%22%20fill%3D%22%231d4f8f%22/%3E%3Cpath%20fill%3D%22%23fff%22%20fill-rule%3D%22evenodd%22%20d%3D%22M4%2030%20L11.5%2010%20H15%20L22.5%2030%20H18.8%20L17.2%2025.5%20H9.3%20L7.7%2030%20Z%20M10.6%2022%20H15.9%20L13.25%2014.5%20Z%22/%3E%3Cpath%20fill%3D%22%23fff%22%20d%3D%22M24%2010%20H35%20V13.2%20H31.2%20V26.8%20H35%20V30%20H24%20V26.8%20H27.8%20V13.2%20H24%20Z%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="site.css?v=3">
+<link rel="stylesheet" href="site.css?v=7">
 <style>
 *{box-sizing:border-box}
 body{font-size:15px;line-height:1.55}
-.home{max-width:1000px;margin:0 auto;padding:44px max(16px,env(safe-area-inset-left,0px)) 64px}
+.home{margin:0;padding:32px max(clamp(16px,3vw,40px),env(safe-area-inset-right,0px)) 56px max(clamp(16px,3vw,40px),env(safe-area-inset-left,0px))}
 .hero{margin-bottom:30px}
 .hero h1{font-size:clamp(28px,5vw,40px);line-height:1.12;letter-spacing:-.025em;margin:0 0 10px;text-wrap:balance}
 .hero h1 b{color:var(--accent)}
-.hero p{margin:0;color:var(--muted);font-size:16px;max-width:58ch}
-.tools{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.hero p{margin:0;color:var(--muted);font-size:16px;max-width:80ch}
+.tools{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 .tool{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;color:inherit;text-decoration:none;box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
 .tool:hover{border-color:var(--accent-2);transform:translateY(-2px)}
 .ic{width:42px;height:42px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
@@ -63,6 +63,6 @@ draw();
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="./config.js?v=3"></script>
 <script src="./auth.js?v=3"></script>
-<script src="./nav.js?v=11"></script>
+<script src="./nav.js?v=12"></script>
 </body>
 </html>

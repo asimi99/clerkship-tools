@@ -9,7 +9,7 @@
 :root{--bg:#eef1f4;--surface:#fff;--fg:#14202b;--muted:#566879;--line:#cfd8e0;--accent:#1f4e8c;--accent-fg:#fff;--accent-soft:#e1ebf7;--good:#1d7a44;--good-soft:#e0f3e7;--bad:#b0342a;--bad-soft:#fbe4e1;--warn:#8f5600;--bar:#1f4e8c;--font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 var(--font)}
-.wrap{max-width:860px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-left,0px)) 56px}
+.wrap{margin:0;padding:24px max(clamp(16px,3vw,40px),env(safe-area-inset-right,0px)) 56px max(clamp(16px,3vw,40px),env(safe-area-inset-left,0px))}
 h1{font-size:24px;margin:0 0 4px} h2{font-size:17px;margin:0 0 8px}
 .muted{color:var(--muted)} .back{font-size:14px;color:var(--accent);text-decoration:none}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:14px}
@@ -40,7 +40,7 @@ select,input[type=number]{font:inherit;padding:6px 8px;border:1.5px solid var(--
 .err{color:var(--bad);margin-top:8px}
 .prog{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;background:var(--accent)}
 </style>
-<link rel="stylesheet" href="../site.css?v=3">
+<link rel="stylesheet" href="../site.css?v=7">
 </head>
 <body>
 <div class="wrap">
@@ -50,7 +50,7 @@ select,input[type=number]{font:inherit;padding:6px 8px;border:1.5px solid var(--
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="../config.js?v=3"></script>
 <script src="../auth.js?v=3"></script>
-<script src="../nav.js?v=11"></script>
+<script src="../nav.js?v=12"></script>
 <script>
 var app = document.getElementById('app');
 var LS = 'ct_exam_sets', LH = 'ct_exam_hist';
