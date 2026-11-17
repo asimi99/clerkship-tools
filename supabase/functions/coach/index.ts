@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({ model, max_tokens: pdfs.length ? 20000 : 6000, stream: true, messages: turns }),
+    body: JSON.stringify({ model, max_tokens: pdfs.length ? 32000 : 16000, stream: true, messages: turns }),
   });
   if (!up.ok || !up.body) return fail(502, "upstream " + up.status);
 
