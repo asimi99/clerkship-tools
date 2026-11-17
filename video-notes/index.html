@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Video Notes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+:root{--bg:#eef1f4;--surface:#fff;--fg:#14202b;--muted:#566879;--line:#cfd8e0;--accent:#1f4e8c;--accent-fg:#fff;--accent-soft:#e1ebf7;--bad:#b0342a;--hy:#c4231c;--font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--mono:'JetBrains Mono',ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 var(--font)}
+.wrap{margin:0;padding:24px max(clamp(16px,3vw,40px),env(safe-area-inset-right,0px)) 56px max(clamp(16px,3vw,40px),env(safe-area-inset-left,0px))}
+h2{font-size:17px;margin:0 0 8px}
+.muted{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:14px;min-width:0}
+.btn{font:inherit;font-weight:600;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-fg);border-radius:8px;padding:8px 16px}
+.btn.sec{background:var(--surface);color:var(--accent)} .btn:disabled{opacity:.45;cursor:default}
+.btn.sm{padding:4px 10px;font-size:13px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+label.f{display:grid;gap:4px;font-weight:600;font-size:14px;margin-top:12px}
+label.f small{font-weight:400;color:var(--muted)}
+input[type=text],textarea{font:inherit;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);width:100%}
+textarea{min-height:90px;resize:vertical}
+textarea.mono{font-family:var(--mono);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font:600 13px var(--font);border:1.5px solid var(--line);background:var(--surface);color:var(--muted);border-radius:99px;padding:5px 11px;cursor:pointer}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.lib{display:grid;gap:8px}
+.lib a{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px;color:var(--fg);text-decoration:none;background:var(--surface)}
+.lib a:hover{border-color:var(--accent)}
+.lib img{width:96px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;flex:none}
+.lib .x{margin-left:auto;background:none;border:0;color:var(--bad);cursor:pointer;font:inherit}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.player{position:sticky;top:70px;z-index:2}
+.frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000}
+.frame iframe,.frame>div{position:absolute;inset:0;width:100%;height:100%;border:0}
+.srow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.srow:first-child{border-top:0}
+.ts{font:600 13px var(--mono);color:var(--accent);background:var(--accent-soft);border:0;border-radius:6px;padding:3px 8px;cursor:pointer;white-space:nowrap}
+.srow.cur{background:linear-gradient(90deg,var(--accent-soft),transparent 70%)}
+.srow h3{font-size:15px;margin:0 0 3px}
+.srow ul{margin:0;padding-left:18px}
+.srow .tools{display:flex;gap:4px}
+.srow .tools button{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:13px;padding:2px 4px}
+.srow .tools button:hover{color:var(--accent)}
+.edit{display:grid;gap:6px}
+.edit input.t{width:90px;font-family:var(--mono)}
+b.hy{color:var(--hy)}
+.ft{display:grid;gap:10px;font-size:14.5px}
+.fn{display:inline-block;padding:8px 12px;border-radius:8px;background:var(--accent-soft);border:1px solid #c9d8ec;max-width:70ch}
+.ft>.fn{font-weight:600}
+.fb{display:grid;gap:8px;margin-left:14px;padding-left:16px;border-left:2px solid var(--line)}
+.br{position:relative;display:grid;gap:6px}
+.br::before{content:"";position:absolute;left:-16px;top:16px;width:12px;border-top:2px solid var(--line)}
+.bl{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.br>.fn{background:#f3f6f9;border-color:var(--line)}
+.fn.end{background:#fbf0ef;border-color:#efcdc9}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.err{color:var(--bad);margin-top:8px}
+.wait{display:flex;gap:8px;align-items:center;color:var(--muted);margin-top:10px}
+details.help summary{cursor:pointer;color:var(--accent);font-size:14px}
+</style>
+<link rel="stylesheet" href="../site.css?v=7">
+</head>
+<body>
+<div class="wrap">
+  <header class="pagehead"><h1>Video Notes</h1><p>Paste a YouTube video and its transcript, say how you want it broken up, and get timestamped sections with notes and a flowchart. Or mark the timestamps yourself while you watch.</p></header>
+  <div id="app"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../config.js?v=3"></script>
+<script src="../auth.js?v=3"></script>
+<script src="../nav.js?v=20"></script>
+<script>
+(function(){
+var app = document.getElementById('app'), LS = 'ct_vnotes';
+var lib = load(), cur = null, view = 'sections', busy = false, err = '', editIdx = -1;
+var STYLES = ['By topic, like a lecture outline','One section per question or case','Every 5 to 10 minutes','Only the high-yield facts','Diagnosis, workup and treatment for each condition'];
+var pick = {}, other = '';
+function load(){ try { return JSON.parse(localStorage.getItem(LS)||'[]'); } catch(e){ return []; } }
+function save(){ try { localStorage.setItem(LS, JSON.stringify(lib)); } catch(e){} }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function rich(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<b class="hy">$1</b>'); }
+function fmt(s){ s=Math.max(0,Math.round(s||0)); var h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60; return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0'); }
+function parseT(v){ v=String(v).trim(); if(!v) return 0; if(/^\d+$/.test(v)) return +v; var p=v.split(':').map(Number); if(p.some(isNaN)) return 0; return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+(p[1]||0); }
+function ytId(u){ var m=String(u).match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([\w-]{11})/); return m?m[1]:(/^[\w-]{11}$/.test(String(u).trim())?String(u).trim():null); }
+
+/* ---------- flowchart text format: first line is the start, "- label => text" branches, 2 spaces per level ---------- */
+function parseTree(txt){
+  var lines=String(txt||'').split('\n').filter(function(l){return l.trim();}); if(!lines.length) return null;
+  var root={t:lines[0].trim(),b:[]}, stack=[[-1,root]];
+  lines.slice(1).forEach(function(l){
+    var ind=Math.floor((l.length-l.replace(/^\s+/,'').length)/2), body=l.trim().replace(/^[-*]\s*/,'');
+    var i=body.indexOf(' => '), lab=i>=0?body.slice(0,i):'', t=i>=0?body.slice(i+4):body;
+    var n={t:t,b:[]}; while(stack[stack.length-1][0]>=ind) stack.pop();
+    stack[stack.length-1][1].b.push({l:lab,n:n}); stack.push([ind,n]);
+  });
+  return root;
+}
+function treeHTML(n){
+  if(!n) return '<p class="muted">No flowchart yet.</p>';
+  function node(x){ var kids=(x.b||[]).map(function(c){return '<div class="br">'+(c.l?'<span class="bl">'+esc(c.l)+'</span>':'')+node(c.n)+'</div>';}).join('');
+    return '<div class="fn'+(kids?'':' end')+'">'+rich(x.t)+'</div>'+(kids?'<div class="fb">'+kids+'</div>':''); }
+  return '<div class="ft">'+node(n)+'</div>';
+}
+
+/* ---------- Claude ---------- */
+async function readStream(res){
+  var rd=res.body.getReader(), dec=new TextDecoder(), buf='', text='', mode=null;
+  function ev(l){ if(l.indexOf('data:')!==0) return; try{ var j=JSON.parse(l.slice(5).trim()); if(j.type==='content_block_delta'&&j.delta&&j.delta.type==='text_delta') text+=j.delta.text; }catch(e){} }
+  for(;;){ var r=await rd.read(); if(r.done) break; var d=dec.decode(r.value,{stream:true});
+    if(mode===null){ var h=(buf+d).replace(/^\s+/,''); if(h.length>=6) mode=/^(event:|data:)/.test(h)?'sse':'text'; }
+    if(mode==='text'){ if(buf){d=buf+d;buf='';} text+=d; continue; }
+    buf+=d; if(mode===null) continue; var ls=buf.split('\n'); buf=ls.pop(); ls.forEach(ev); }
+  if(buf){ if(mode==='text'||(mode===null&&!/^(event:|data:)/.test(buf.trim()))) text+=buf; else ev(buf); }
+  return text;
+}
+async function ask(prompt){
+  if(!window.CT||!CT.ready) throw {code:'off'};
+  var tok=await CT.token();
+  var res=await fetch(CT.fnUrl,{method:'POST',headers:{'Content-Type':'application/json','apikey':CT.anon,'Authorization':'Bearer '+(tok||CT.anon)},body:JSON.stringify({input:prompt,tier:'default'})});
+  if(!res.ok) throw {code:res.status===429?'limit':'fail'};
+  return readStream(res);
+}
+function jsonFrom(t){ var a=t.indexOf('{'), b=t.lastIndexOf('}'); if(a<0||b<a) return null; try{ return JSON.parse(t.slice(a,b+1)); }catch(e){ return null; } }
+var FLOW_RULES='Flowchart format, plain text only: the first line is the starting question or presentation. Each branch is a new line starting with "- ", indented 2 spaces per level, written as "branch condition => what to do or conclude". Put the most important words in **double asterisks**. 8 to 25 lines.';
+async function build(v, transcript, how){
+  var prompt='You turn a medical lecture video transcript into study notes for a Canadian medical student.\n'
+   +'How the student wants it broken up: '+how+'\n\n'
+   +'Return ONLY one JSON object, no code fences: {"title":"short title for the video","sections":[{"t":start time in whole seconds,"title":"short section title","notes":["1 to 4 short notes, the key facts said in that part, with the most testable words in **double asterisks**"]}],"flow":"a flowchart that ties the main decision of the video together"}\n'
+   +'Rules: use the real timestamps from the transcript for "t", in order. Sections should match how the student asked for it to be broken up. Notes are facts, not descriptions of the video. Canadian spelling. No em dashes or semicolons. '+FLOW_RULES+'\n\nTRANSCRIPT:\n'+transcript.slice(0,180000);
+  var o=jsonFrom(await ask(prompt)); if(!o||!Array.isArray(o.sections)) throw {code:'parse'};
+  if(o.title&&!v.title) v.title=String(o.title).slice(0,120);
+  v.sections=o.sections.map(function(s){ return {t:Math.max(0,Math.round(+s.t||0)),title:String(s.title||'').slice(0,140),notes:(Array.isArray(s.notes)?s.notes:[s.notes]).filter(Boolean).map(String)}; }).sort(function(a,b){return a.t-b.t;});
+  if(o.flow) v.flow=String(o.flow);
+}
+async function flowFromSections(v){
+  var txt=v.sections.map(function(s){return fmt(s.t)+' '+s.title+': '+s.notes.join(' ');}).join('\n');
+  var t=await ask('Make one clinical approach flowchart that ties these lecture notes together. '+FLOW_RULES+' Return only the flowchart text.\n\nNOTES:\n'+txt);
+  v.flow=t.replace(/^```\w*\n?|```$/g,'').trim();
+}
+function errCopy(e){ return e&&e.code==='limit'?'You have used today\'s free requests. Signing in gives you more.':e&&e.code==='off'?'Claude is not switched on for this site yet.':e&&e.code==='parse'?'Claude\'s answer could not be read. Try again.':'Claude could not be reached. Try again in a moment.'; }
+
+/* ---------- player ---------- */
+var ytp=null, apiP=null, timer=null;
+function api(){ if(!apiP) apiP=new Promise(function(r){ window.onYouTubeIframeAPIReady=r; var s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; document.head.appendChild(s); }); return apiP; }
+async function mountPlayer(){
+  var box=document.getElementById('yt'); if(!box||!cur) return; ytp=null;
+  await api(); if(!document.getElementById('yt')) return;
+  ytp=new YT.Player('yt',{videoId:cur.id,playerVars:{rel:0,playsinline:1,modestbranding:1}});
+  clearInterval(timer); timer=setInterval(markCur,1000);
+}
+function now(){ try{ return ytp&&ytp.getCurrentTime?ytp.getCurrentTime():0; }catch(e){ return 0; } }
+function seek(t){ try{ if(ytp&&ytp.seekTo){ ytp.seekTo(t,true); ytp.playVideo(); } }catch(e){} }
+function markCur(){ var t=now(); document.querySelectorAll('.srow[data-t]').forEach(function(el){ el.classList.toggle('cur', +el.dataset.t<=t && +el.dataset.e>t); }); }
+
+/* ---------- views ---------- */
+function render(){
+  if(!cur) return renderHome();
+  var v=cur, secs=v.sections;
+  var h='<div class="row" style="margin-top:6px"><button class="btn sec sm" data-a="home">All videos</button><b style="font-size:18px;overflow-wrap:anywhere">'+esc(v.title||'Untitled video')+'</b></div>';
+  h+='<div class="grid" style="margin-top:12px"><div class="player"><div class="frame"><div id="yt"></div></div>'
+    +'<div class="row" style="margin-top:8px"><button class="btn sm" data-a="mark">+ Section at current time</button><a class="muted" style="font-size:13px" href="https://www.youtube.com/watch?v='+v.id+'" target="_blank" rel="noopener">Open on YouTube</a></div></div>';
+  h+='<div class="panel" style="margin-top:0"><div class="tabs"><button class="chip'+(view==='sections'?' on':'')+'" data-a="tab" data-v="sections">Sections ('+secs.length+')</button><button class="chip'+(view==='flow'?' on':'')+'" data-a="tab" data-v="flow">Flowchart</button></div>';
+  if(view==='sections'){
+    if(!secs.length) h+='<p class="muted">Play the video and tap "+ Section at current time" whenever a new part starts.</p>';
+    h+='<div>'+secs.map(function(s,i){
+      var e=(secs[i+1]||{t:1e9}).t;
+      if(i===editIdx) return '<div class="srow"><span></span><div class="edit"><div class="row"><input class="t" type="text" id="et" value="'+fmt(s.t)+'"><button class="btn sec sm" data-a="usenow">Use current time</button></div><input type="text" id="eti" placeholder="Section title" value="'+esc(s.title)+'"><textarea id="en" placeholder="Notes, one per line. Wrap key words in **double asterisks**.">'+esc(s.notes.join('\n'))+'</textarea><div class="row"><button class="btn sm" data-a="savesec">Save</button><button class="btn sec sm" data-a="cancel">Cancel</button></div></div><span></span></div>';
+      return '<div class="srow" data-t="'+s.t+'" data-e="'+e+'"><button class="ts" data-a="seek" data-t="'+s.t+'">'+fmt(s.t)+'</button><div><h3>'+esc(s.title||'Untitled')+'</h3>'+(s.notes.length?'<ul>'+s.notes.map(function(n){return '<li>'+rich(n)+'</li>';}).join('')+'</ul>':'')+'</div><div class="tools"><button data-a="edit" data-i="'+i+'" title="Edit">Edit</button><button data-a="del" data-i="'+i+'" title="Delete">Delete</button></div></div>';
+    }).join('')+'</div>';
+    h+='<details class="help" style="margin-top:12px"><summary>Rebuild the sections with Claude</summary>'+buildForm(false)+'</details>';
+  } else {
+    h+=treeHTML(parseTree(v.flow));
+    h+='<div class="row" style="margin-top:12px"><button class="btn sm" data-a="genflow"'+(busy||!secs.length?' disabled':'')+'>'+(v.flow?'Rebuild':'Build')+' the flowchart from the sections</button></div>';
+    h+='<label class="f">Edit the flowchart<small>First line is the start. Each branch is "- condition => result", indented 2 spaces per level.</small><textarea class="mono" id="flowtxt" style="min-height:180px">'+esc(v.flow||'')+'</textarea></label>';
+  }
+  if(busy) h+='<div class="wait">Claude is working on it…</div>';
+  if(err) h+='<p class="err">'+esc(err)+'</p>';
+  h+='</div></div>';
+  app.innerHTML=h; mountPlayer();
+}
+function buildForm(first){
+  return '<label class="f">YouTube link'+(first?'':'<small>Same video</small>')+'<input type="text" id="url" placeholder="https://www.youtube.com/watch?v=…" value="'+(cur?'https://www.youtube.com/watch?v='+cur.id:'')+'"'+(first?'':' disabled')+'></label>'
+   +'<label class="f">Transcript<small>On YouTube: open the description, tap "Show transcript", select it all and copy. Paste it here with the times.</small><textarea id="tr" placeholder="0:00 Welcome back…" style="min-height:140px"></textarea></label>'
+   +'<label class="f">How do you want it broken up?</label><div class="chips">'+STYLES.map(function(s,i){return '<button type="button" class="chip'+(pick[i]?' on':'')+'" data-a="style" data-i="'+i+'">'+esc(s)+'</button>';}).join('')+'</div>'
+   +'<label class="f">Other<small>Say it in your own words</small><textarea id="other" style="min-height:60px" placeholder="e.g. one section per murmur, with the manoeuvre that changes it">'+esc(other)+'</textarea></label>'
+   +'<div class="row" style="margin-top:12px"><button class="btn" data-a="build"'+(busy?' disabled':'')+'>Build with Claude</button>'+(first?'<button class="btn sec" data-a="blank">Make the timestamps myself</button>':'')+'</div>'
+   +(busy?'<div class="wait">Claude is reading the transcript…</div>':'')+(err&&!cur?'<p class="err">'+esc(err)+'</p>':'');
+}
+function renderHome(){
+  clearInterval(timer);
+  var h='<section class="panel"><h2>New video</h2>'+buildForm(true)+'</section>';
+  h+='<section class="panel"><h2>Your videos</h2>'+(lib.length?'<div class="lib">'+lib.map(function(v,i){return '<a href="#v='+v.key+'" data-a="open" data-i="'+i+'"><img src="https://i.ytimg.com/vi/'+v.id+'/mqdefault.jpg" alt=""><span><b>'+esc(v.title||'Untitled video')+'</b><br><span class="muted" style="font-size:13px">'+v.sections.length+' sections'+(v.flow?' · flowchart':'')+'</span></span><button class="x" data-a="rm" data-i="'+i+'">Remove</button></a>';}).join('')+'</div>':'<p class="muted">Videos you build are saved on this device.</p>')+'</section>';
+  app.innerHTML=h;
+}
+function howText(){ var a=STYLES.filter(function(s,i){return pick[i];}); var o=(document.getElementById('other')||{}).value||other; if(o.trim()) a.push(o.trim()); return a.join('. ')||'By topic, like a lecture outline'; }
+function newVid(id){ var v={key:Date.now().toString(36),id:id,title:'',sections:[],flow:'',ts:Date.now()}; lib.unshift(v); save(); return v; }
+
+app.addEventListener('click', async function(e){
+  var b=e.target.closest('[data-a]'); if(!b) return; var a=b.dataset.a;
+  if(a!=='open') e.preventDefault();
+  if(a==='home'){ cur=null; err=''; editIdx=-1; location.hash=''; render(); return; }
+  if(a==='open'){ if(e.target.closest('.x')) return; e.preventDefault(); cur=lib[+b.dataset.i]; view='sections'; err=''; location.hash='v='+cur.key; render(); return; }
+  if(a==='rm'){ e.stopPropagation(); lib.splice(+b.dataset.i,1); save(); render(); return; }
+  if(a==='style'){ other=(document.getElementById('other')||{}).value||other; pick[b.dataset.i]=!pick[b.dataset.i]; b.classList.toggle('on'); return; }
+  if(a==='tab'){ saveFlowText(); view=b.dataset.v; editIdx=-1; render(); return; }
+  if(a==='seek'){ seek(+b.dataset.t); return; }
+  if(a==='mark'){ var t=Math.floor(now()); cur.sections.push({t:t,title:'',notes:[]}); cur.sections.sort(function(x,y){return x.t-y.t;}); editIdx=cur.sections.findIndex(function(s){return s.t===t&&!s.title;}); view='sections'; save(); render(); var ti=document.getElementById('eti'); if(ti) ti.focus(); return; }
+  if(a==='edit'){ editIdx=+b.dataset.i; render(); return; }
+  if(a==='cancel'){ var s0=cur.sections[editIdx]; if(s0&&!s0.title&&!s0.notes.length) cur.sections.splice(editIdx,1); editIdx=-1; save(); render(); return; }
+  if(a==='usenow'){ document.getElementById('et').value=fmt(now()); return; }
+  if(a==='savesec'){ var s=cur.sections[editIdx]; s.t=parseT(document.getElementById('et').value); s.title=document.getElementById('eti').value.trim(); s.notes=document.getElementById('en').value.split('\n').map(function(x){return x.trim();}).filter(Boolean); cur.sections.sort(function(x,y){return x.t-y.t;}); editIdx=-1; save(); render(); return; }
+  if(a==='del'){ cur.sections.splice(+b.dataset.i,1); save(); render(); return; }
+  if(a==='blank'){ var id=ytId(document.getElementById('url').value); if(!id){ err='That does not look like a YouTube link.'; render(); return; } err=''; cur=newVid(id); view='sections'; location.hash='v='+cur.key; render(); return; }
+  if(a==='build'){
+    var id2=cur?cur.id:ytId(document.getElementById('url').value), tr=document.getElementById('tr').value.trim(), how=howText();
+    if(!id2){ err='That does not look like a YouTube link.'; render(); return; }
+    if(tr.length<200){ err='Paste the transcript first (with the times).'; render(); return; }
+    var target=cur||newVid(id2); cur=target; busy=true; err=''; view='sections'; location.hash='v='+cur.key; render();
+    try{ await build(target,tr,how); save(); }catch(x){ err=errCopy(x); }
+    busy=false; render(); return;
+  }
+  if(a==='genflow'){ busy=true; err=''; render(); try{ await flowFromSections(cur); save(); }catch(x){ err=errCopy(x); } busy=false; render(); return; }
+});
+function saveFlowText(){ var f=document.getElementById('flowtxt'); if(f&&cur){ cur.flow=f.value; save(); } }
+app.addEventListener('input', function(e){
+  if(e.target.id==='flowtxt'&&cur){ cur.flow=e.target.value; save(); var ft=app.querySelector('.ft, .panel > p.muted'); var html=treeHTML(parseTree(cur.flow)); var holder=document.createElement('div'); holder.innerHTML=html; if(ft) ft.replaceWith(holder.firstChild); }
+  if(e.target.id==='other') other=e.target.value;
+});
+function route(){ var m=location.hash.match(/v=([\w]+)/); cur=m?lib.find(function(v){return v.key===m[1];})||null:null; render(); }
+addEventListener('hashchange', function(){ var m=location.hash.match(/v=([\w]+)/); if((m&&cur&&cur.key===m[1])||(!m&&!cur)) return; route(); });
+route();
+})();
+</script>
+</body>
+</html>

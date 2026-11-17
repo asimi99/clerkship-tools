@@ -5,7 +5,8 @@
   var MAIN = [
     ['Home', root, 'All tools'],
     ['Stem Coach', root + 'stem-coach/', 'Screenshot a question, get coached to the answer'],
-    ['Practice Exams', root + 'exam/', 'Turn question PDFs into an NBME-style test']
+    ['Practice Exams', root + 'exam/', 'Turn question PDFs into an NBME-style test'],
+    ['Video Notes', root + 'video-notes/', 'Any YouTube video into timestamps and a flowchart']
   ];
   var SHELF = [
     ['OB/GYN', [['OB/GYN Video Desk', root + 'obgyn/', 'Videos by topic and system, 27 flowcharts, PDFs']]],
