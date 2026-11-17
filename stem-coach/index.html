@@ -155,7 +155,7 @@ tr.me td{background:var(--good-soft)}
 var lim = { images:{ maxCount:4, mediaTypes:['image/png','image/jpeg','image/webp'] } }, MAXIMG = 4, hist = [];
 var view = 'stem';
 var cases = [], cur = -1;
-var up = { files:[], text:'', careful:false };
+var up = { files:[], text:'' };
 var stage = document.getElementById('stage'), tabsEl = document.getElementById('tabs');
 
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
@@ -230,7 +230,7 @@ async function gen(c){
   c.ctl = new AbortController();
   var done = 0;
   try {
-    var o = { signal:c.ctl.signal, cache:false, modelTier:(c.careful?'complex':'default'),
+    var o = { signal:c.ctl.signal, cache:false, modelTier:'default',
       onText:function(u){ var ls=u.text.split('\n'); for(; done<ls.length-1; done++) proc(c, ls[done]); } };
     if (c.files.length) o.images = c.files.map(function(f){ return f.blob; });
     var r = await sample(buildPrompt(c), o);
@@ -281,7 +281,6 @@ function uploadHTML(){
   }
   h += '<div><label class="muted" for="qtext">'+(canImg?'Or add the question as text':'Paste the question as text')+'</label>'
     +  '<textarea id="qtext" placeholder="Paste the stem and the answer choices">'+esc(up.text)+'</textarea></div>'
-    +  '<label class="check"><input type="checkbox" id="careful"'+(up.careful?' checked':'')+'><span>Use the most careful model. Slower, better for hard questions.</span></label>'
     +  '<div class="row"><button type="button" class="btn" data-act="start"'+((up.files.length||up.text.trim())?'':' disabled')+'>Start coaching</button>'
     +  '<span class="muted">Please leave out patient names and other identifying details.</span></div></section>';
   return h;
@@ -415,7 +414,6 @@ document.addEventListener('paste', function(e){
 });
 stage.addEventListener('change', function(e){
   if (e.target.id==='file'){ addFiles(e.target.files); }
-  if (e.target.id==='careful'){ up.careful = e.target.checked; }
 });
 stage.addEventListener('input', function(e){
   var c = cases[cur];
@@ -481,9 +479,9 @@ stage.addEventListener('click', function(e){
   if (act==='rm'){ var f=up.files.splice(+el.dataset.k,1)[0]; if(f) URL.revokeObjectURL(f.url); renderStage(); return; }
   if (act==='start'){
     if (!sample) return;
-    var c = { title:'', files:up.files.slice(), text:up.text.trim(), careful:up.careful, level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false };
+    var c = { title:'', files:up.files.slice(), text:up.text.trim(), level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false };
     cases.push(c); cur = cases.length-1;
-    up = { files:[], text:'', careful:up.careful };
+    up = { files:[], text:'' };
     renderStage(); window.scrollTo({top:0});
     gen(c); return;
   }
