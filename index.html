@@ -12,7 +12,6 @@
 body{font-size:15px;line-height:1.55}
 .home{max-width:1000px;margin:0 auto;padding:44px max(16px,env(safe-area-inset-left,0px)) 64px}
 .hero{margin-bottom:30px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:99px;margin-bottom:14px}
 .hero h1{font-size:clamp(28px,5vw,40px);line-height:1.12;letter-spacing:-.025em;margin:0 0 10px;text-wrap:balance}
 .hero h1 b{color:var(--accent)}
 .hero p{margin:0;color:var(--muted);font-size:16px;max-width:58ch}
@@ -24,27 +23,47 @@ body{font-size:15px;line-height:1.55}
 .tool b{font-size:17px;letter-spacing:-.01em}
 .tool span{color:var(--muted);font-size:14px;flex:1}
 .tool i{font-style:normal;font-weight:600;font-size:14px;color:var(--accent)}
-.note{color:var(--muted);font-size:13px;margin-top:26px}
+.shelves{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.shelves button{font:600 14px var(--font);border:1.5px solid var(--line);background:var(--surface);color:var(--muted);border-radius:99px;padding:7px 14px;cursor:pointer}
+.shelves button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.group{margin-bottom:28px}.group h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.empty{color:var(--muted);font-size:14px;margin:0}
+
 </style>
 </head>
 <body>
 <main class="home">
   <section class="hero">
-    <span class="eyebrow">Free for the class</span>
     <h1><b>A</b>sim <b>I</b>brahim's Clerkship Tools</h1>
     <p>Study tools for clerkship and shelf prep. Use everything as a guest, or create an account to save your progress.</p>
   </section>
-  <div class="tools">
-    <a class="tool" href="./stem-coach/"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><b>Stem Coach</b><span>Add a screenshot of any question. It coaches you to the answer one decision at a time.</span><i>Open</i></a>
-    <a class="tool" href="./exam/"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span><b>Practice Exams</b><span>Upload PDFs of questions and answers. It builds an NBME-style test and explains every answer after.</span><i>Open</i></a>
-    <a class="tool" href="./flowcharts/"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v8M6.5 12h11v4"/></svg></span><b>High Yield Flowcharts</b><span>40 approach flowcharts for the peds shelf, full size, with links to the video moments.</span><i>Open</i></a>
-    <a class="tool" href="https://asimi99.github.io/peds-shelf/"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg></span><b>High Yield Videos</b><span>Peds review videos split by topic with exact timestamps, plus a playlist for every system.</span><i>Open</i></a>
-  </div>
-  <p class="note">More tools get added as they are built.</p>
+  <nav class="shelves" id="shelves" aria-label="Filter by shelf"></nav>
+  <div id="groups"></div>
 </main>
+<script>
+var IC={"stem": "<path d=\"M9 11l3 3L22 4\"/><path d=\"M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11\"/>", "exam": "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M8 13h8M8 17h5\"/>", "fc": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"5\" rx=\"1\"/><rect x=\"14\" y=\"16\" width=\"7\" height=\"5\" rx=\"1\"/><rect x=\"3\" y=\"16\" width=\"7\" height=\"5\" rx=\"1\"/><path d=\"M6.5 8v8M6.5 12h11v4\"/>", "vid": "<rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"3\"/><path d=\"M10 9l5 3-5 3z\"/>"};
+var TOOLS=[
+ {g:'general',name:'Stem Coach',href:'./stem-coach/',ic:'stem',d:'Add a screenshot of any question. It coaches you to the answer one decision at a time.'},
+ {g:'general',name:'Practice Exams',href:'./exam/',ic:'exam',d:'Upload PDFs of questions and answers. It builds an NBME-style test and explains every answer after.'},
+ {g:'peds',name:'Peds Flowcharts',href:'./flowcharts/',ic:'fc',d:'40 approach flowcharts for the peds shelf, full size, with links to the video moments.'},
+ {g:'peds',name:'Peds Videos',href:'https://asimi99.github.io/peds-shelf/',ic:'vid',d:'Review videos split by topic with exact timestamps, plus a playlist for every system.'}
+];
+var SHELVES=[['all','All'],['general','General'],['obgyn','OB/GYN'],['peds','Pediatrics'],['im','Internal Medicine'],['fm','Family Medicine'],['psych','Psychiatry'],['surg','Surgery']];
+var cur='all'; try{cur=localStorage.getItem('ct_shelf')||'all'}catch(e){}
+function card(t){return '<a class="tool" href="'+t.href+'"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+IC[t.ic]+'</svg></span><b>'+t.name+'</b><span>'+t.d+'</span><i>Open</i></a>';}
+function draw(){
+ document.getElementById('shelves').innerHTML=SHELVES.map(function(s){return '<button type="button" data-s="'+s[0]+'"'+(s[0]===cur?' class="on"':'')+'>'+s[1]+'</button>';}).join('');
+ var list=cur==='all'?SHELVES.slice(1):SHELVES.filter(function(s){return s[0]===cur;});
+ var h='';
+ list.forEach(function(s){var ts=TOOLS.filter(function(t){return t.g===s[0];}); if(!ts.length&&cur==='all')return; h+='<section class="group"><h2>'+s[1]+'</h2>'+(ts.length?'<div class="tools">'+ts.map(card).join('')+'</div>':'<p class="empty">No tools for this shelf yet.</p>')+'</section>';});
+ document.getElementById('groups').innerHTML=h;
+}
+document.getElementById('shelves').addEventListener('click',function(e){var b=e.target.closest('[data-s]');if(!b)return;cur=b.dataset.s;try{localStorage.setItem('ct_shelf',cur)}catch(x){}draw();});
+draw();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="./config.js?v=3"></script>
 <script src="./auth.js?v=3"></script>
-<script src="./nav.js?v=4"></script>
+<script src="./nav.js?v=5"></script>
 </body>
 </html>

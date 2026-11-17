@@ -3,11 +3,11 @@
   var me = document.currentScript, src = me.src.split('?')[0], root = src.slice(0, src.lastIndexOf('/') + 1);
   var noauth = me.hasAttribute('data-noauth'), isStatic = me.hasAttribute('data-static');
   var LINKS = [
-    ['Home', root, 'All tools'],
-    ['Stem Coach', root + 'stem-coach/', 'Screenshot a question, get coached to the answer'],
-    ['Practice Exams', root + 'exam/', 'Turn question PDFs into an NBME-style test'],
-    ['High Yield Flowcharts', root + 'flowcharts/', '40 approach flowcharts, full size'],
-    ['High Yield Videos', 'https://asimi99.github.io/peds-shelf/', 'Review videos split by topic and system']
+    ['Home', root, 'All tools', ''],
+    ['Stem Coach', root + 'stem-coach/', 'Screenshot a question, get coached to the answer', 'General'],
+    ['Practice Exams', root + 'exam/', 'Turn question PDFs into an NBME-style test', 'General'],
+    ['Peds Flowcharts', root + 'flowcharts/', '40 approach flowcharts, full size', 'Pediatrics'],
+    ['Peds Videos', 'https://asimi99.github.io/peds-shelf/', 'Review videos split by topic and system', 'Pediatrics']
   ];
   var F = 'Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
   var css = ''
@@ -22,7 +22,7 @@
    + '.ctn-a{height:36px;border:0;background:#1d4f8f;color:#fff!important;border-radius:9px;padding:0 14px;cursor:pointer;font-weight:600;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}.ctn-a:hover{background:#163d70}'
    + '.ctn-dd{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:calc(100% + 6px);width:min(340px,calc(100vw - 32px));background:#fff;border:1px solid #dce3ea;border-radius:12px;box-shadow:0 12px 32px rgba(20,32,43,.16);padding:6px;z-index:60}'
    + '.ctn-dd a{display:block;padding:10px 12px;border-radius:8px}.ctn-dd a b{display:block;font-weight:600;font-size:14.5px}.ctn-dd a small{color:#5b6876;font-size:12.5px}.ctn-dd a:hover{background:#f1f4f7}.ctn-dd a.on{background:#e6eef8}.ctn-dd a.on b{color:#1d4f8f}'
-   + '.ctn-rel{position:relative}'
+   + '.ctn-rel{position:relative}.ctn-gh{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5b6876;padding:10px 12px 4px}'
    + '.ctn-modal{position:fixed;inset:0;background:rgba(20,32,43,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}.ctn-modal[hidden]{display:none}'
    + '.ctn-card{background:#fff;color:#14202b;border-radius:16px;padding:24px;width:100%;max-width:380px;font:400 15px/1.5 '+F+';box-shadow:0 20px 50px rgba(20,32,43,.25)}'
    + '.ctn-card h2{margin:0 0 4px;font-size:21px;letter-spacing:-.01em}.ctn-card p{margin:0 0 16px;color:#5b6876;font-size:14px}.ctn-card input{width:100%;font:inherit;padding:11px 12px;border:1.5px solid #dce3ea;border-radius:9px;margin-bottom:10px;background:#fff;color:#14202b}.ctn-card input:focus{outline:2px solid #2f6db5;outline-offset:-1px;border-color:transparent}'
@@ -37,7 +37,7 @@
   h.innerHTML = '<div class="ctn-in"><a class="ctn-logo" href="'+root+'" aria-label="Asim Ibrahim\'s Clerkship Tools, home">'+LOGO+'<span class="ctn-word"><small><b>A</b>sim <b>I</b>brahim\'s</small><span>Clerkship Tools</span></span></a><span class="ctn-sp"></span>'
    + '<button class="ctn-b" id="ctnb" type="button" aria-label="Back">'+ARR('M15 18l-6-6 6-6')+'</button><button class="ctn-b" id="ctnf" type="button" aria-label="Forward">'+ARR('M9 18l6-6-6-6')+'</button>'
    + '<span class="ctn-rel"><button class="ctn-m" id="ctnm" type="button" aria-expanded="false"><span class="ctn-hide">Menu</span>'+ARR('M4 7h16M4 12h16M4 17h16').replace('<svg','<svg width="18" height="18"')+'</button>'
-   + '<nav class="ctn-dd" id="ctnd" hidden>'+LINKS.map(function(l){ var on = l[1]===root ? (path===root) : path.indexOf(l[1])===0; return '<a href="'+l[1]+'"'+(on?' class="on"':'')+'><b>'+l[0]+'</b><small>'+l[2]+'</small></a>'; }).join('')+'</nav></span>'
+   + '<nav class="ctn-dd" id="ctnd" hidden>'+LINKS.map(function(l,i){ var hd = (l[3] && (i===0 || LINKS[i-1][3]!==l[3])) ? '<div class="ctn-gh">'+l[3]+'</div>' : ''; var on = l[1]===root ? (path===root) : path.indexOf(l[1])===0; return hd+'<a href="'+l[1]+'"'+(on?' class="on"':'')+'><b>'+l[0]+'</b><small>'+l[2]+'</small></a>'; }).join('')+'</nav></span>'
    + (noauth?'':'<button class="ctn-a" id="ctna" type="button">Sign in</button>')+'</div>';
   document.body.insertBefore(h, document.body.firstChild);
   // full width even when the page body has side padding
