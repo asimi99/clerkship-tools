@@ -10,7 +10,7 @@
   var SHELF = [
     ['OB/GYN', [['OB/GYN Video Desk', root + 'obgyn/', 'Videos by topic and system, 27 flowcharts, PDFs']]],
     ['Pediatrics', [['Peds Flowcharts', root + 'flowcharts/', '40 approach flowcharts, full size'], ['Peds Videos', 'https://asimi99.github.io/peds-shelf/', 'Review videos split by topic and system']]],
-    ['Internal Medicine', [['IM Video Desk', root + 'im/', 'Videos by topic and system, 35 flowcharts, PDFs']]], ['Family Medicine', []], ['Psychiatry', [['Psych Video Desk', root + 'psych/', 'Videos by topic and system, 21 flowcharts, PDFs']]], ['Surgery', [['Surgery Video Desk', root + 'surg/', 'Videos by topic and system, 28 flowcharts, PDFs']]]
+    ['Internal Medicine', [['IM Video Desk', root + 'im/', 'Videos by topic and system, 35 flowcharts, PDFs']]], ['Family Medicine', [['FM Video Desk', root + 'fm/', 'Videos by topic and system, 23 flowcharts, PDFs']]], ['Psychiatry', [['Psych Video Desk', root + 'psych/', 'Videos by topic and system, 21 flowcharts, PDFs']]], ['Surgery', [['Surgery Video Desk', root + 'surg/', 'Videos by topic and system, 28 flowcharts, PDFs']]]
   ];
   function isOn(href){ return href===root ? (path===root) : (path.indexOf(href)===0 || location.href.indexOf(href)===0); }
   function lk(l){ return '<a href="'+l[1]+'"'+(isOn(l[1])?' class="on"':'')+'><b>'+l[0]+'</b><small>'+l[2]+'</small></a>'; }
