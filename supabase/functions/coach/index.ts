@@ -12,7 +12,7 @@ const PDF_USER_DAILY = Number(Deno.env.get("PDF_USER_DAILY") ?? 15);
 const PDF_GUEST_DAILY = Number(Deno.env.get("PDF_GUEST_DAILY") ?? 3);
 const MODELS: Record<string, string> = {
   quick: Deno.env.get("MODEL_QUICK") ?? "claude-haiku-5-5",
-  default: Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5",
+  default: "claude-sonnet-5-5",
   complex: Deno.env.get("MODEL_COMPLEX") ?? "claude-opus-5-5",
 };
 
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({ model, max_tokens: pdfs.length ? 32000 : 16000, stream: true, messages: turns }),
+    body: JSON.stringify({ model, max_tokens: 64000, stream: true, messages: turns }),
   });
   if (!up.ok || !up.body) return fail(502, "upstream " + up.status);
 
