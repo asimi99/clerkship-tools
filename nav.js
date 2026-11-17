@@ -10,7 +10,7 @@
   var SHELF = [
     ['OB/GYN', []],
     ['Pediatrics', [['Peds Flowcharts', root + 'flowcharts/', '40 approach flowcharts, full size'], ['Peds Videos', 'https://asimi99.github.io/peds-shelf/', 'Review videos split by topic and system']]],
-    ['Internal Medicine', []], ['Family Medicine', []], ['Psychiatry', []], ['Surgery', []]
+    ['Internal Medicine', [['IM Video Desk', root + 'im/', 'Videos by topic and system, 35 flowcharts, PDFs']]], ['Family Medicine', []], ['Psychiatry', []], ['Surgery', []]
   ];
   function isOn(href){ return href===root ? (path===root) : (path.indexOf(href)===0 || location.href.indexOf(href)===0); }
   function lk(l){ return '<a href="'+l[1]+'"'+(isOn(l[1])?' class="on"':'')+'><b>'+l[0]+'</b><small>'+l[2]+'</small></a>'; }
