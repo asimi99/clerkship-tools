@@ -15,24 +15,6 @@
   --bad:#b0342a; --bad-soft:#fbe4e1;
   --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0f161c; --surface:#17212a; --fg:#e6edf2; --muted:#9aaab7; --line:#2a3946;
-    --accent:#4cc3c0; --accent-fg:#06201f; --accent-soft:#16363a;
-    --good:#5bd08a; --good-soft:#15301f;
-    --warn:#f0b45a; --warn-soft:#38290f;
-    --bad:#ff8f84; --bad-soft:#3a1b18;
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0f161c; --surface:#17212a; --fg:#e6edf2; --muted:#9aaab7; --line:#2a3946;
-  --accent:#4cc3c0; --accent-fg:#06201f; --accent-soft:#16363a;
-  --good:#5bd08a; --good-soft:#15301f;
-  --warn:#f0b45a; --warn-soft:#38290f;
-  --bad:#ff8f84; --bad-soft:#3a1b18;
-  color-scheme:dark;
-}
 *{box-sizing:border-box}
 body{
   background:var(--bg); color:var(--fg); font-family:var(--font); font-size:16px; line-height:1.55;
@@ -158,9 +140,7 @@ tr.me td{background:var(--good-soft)}
   <header>
     <h1>Stem Coach</h1>
     <p id="sub">Add a screenshot of any question and get walked to the answer one decision at a time.</p>
-    <div class="auth" id="auth" style="margin-top:10px"></div>
   </header>
-  <a class="back" id="back" href="../">All tools</a>
   <nav class="tabs" id="tabs" aria-label="Questions"></nav>
   <div id="stage"></div>
 </div>
@@ -169,6 +149,7 @@ tr.me td{background:var(--good-soft)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="../config.js"></script>
 <script src="../auth.js"></script>
+<script src="../nav.js"></script>
 <script>
 var lim = { images:{ maxCount:4, mediaTypes:['image/png','image/jpeg','image/webp'] } }, MAXIMG = 4, hist = [];
 var view = 'stem';
@@ -597,7 +578,6 @@ async function loadHist(){
 }
 
 /* ---------- start ---------- */
-CT.mount(document.getElementById('auth'));
 CT.onAuth(function(){ loadHist(); });
 renderStage();
 loadHist();

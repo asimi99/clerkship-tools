@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
 :root{--bg:#eef1f4;--surface:#fff;--fg:#14202b;--muted:#566879;--line:#cfd8e0;--accent:#1f4e8c;--accent-fg:#fff;--accent-soft:#e1ebf7;--good:#1d7a44;--good-soft:#e0f3e7;--bad:#b0342a;--bad-soft:#fbe4e1;--warn:#8f5600;--bar:#1f4e8c;--font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1820;--surface:#16222d;--fg:#e8eef3;--muted:#9bb0c1;--line:#2a3a48;--accent:#7fb0ea;--accent-fg:#06121f;--accent-soft:#1b2c42;--good:#5fd08a;--good-soft:#14341f;--bad:#ff8a7e;--bad-soft:#3a1b18;--warn:#e7b25c;--bar:#16314f}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 var(--font)}
 .wrap{max-width:860px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-left,0px)) 56px}
@@ -23,7 +22,7 @@ h1{font-size:24px;margin:0 0 4px} h2{font-size:17px;margin:0 0 8px}
 .set:first-of-type{border-top:0} .set b{font-weight:600;overflow-wrap:anywhere}
 .set .x{margin-left:auto;background:none;border:0;color:var(--bad);cursor:pointer;font:inherit}
 select,input[type=number]{font:inherit;padding:6px 8px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
-.bar{background:var(--bar);color:#fff;border-radius:10px 10px 0 0;padding:10px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-weight:600}
+.bar{background:var(--accent);color:#fff;border-radius:10px 10px 0 0;padding:10px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-weight:600}
 .bar .sp{margin-left:auto} .bar button{font:inherit;font-weight:600;cursor:pointer;border:1.5px solid #fff;background:transparent;color:#fff;border-radius:8px;padding:4px 12px}
 .qbox{background:var(--surface);border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;padding:18px}
 .stem{white-space:pre-wrap;margin-bottom:14px}
@@ -45,15 +44,14 @@ select,input[type=number]{font:inherit;padding:6px 8px;border:1.5px solid var(--
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="../">All tools</a>
   <h1>Practice Exams</h1>
-  <p class="muted" style="margin:0 0 10px">Upload PDFs of questions and answers. The site turns them into an NBME-style online test with a timer, flagging, a question navigator and a score review.</p>
-  <div class="auth" id="auth"></div>
+  <p class="muted" style="margin:0 0 10px">Upload PDFs of questions and answers. The site turns them into an NBME-style online test with a timer, flagging and a question navigator. After the test you get your score and a full explanation for every question.</p>
   <div id="app"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="../config.js"></script>
 <script src="../auth.js"></script>
+<script src="../nav.js"></script>
 <script>
 var app = document.getElementById('app');
 var LS = 'ct_exam_sets', LH = 'ct_exam_hist';
@@ -63,7 +61,7 @@ function load(k){ try { return JSON.parse(localStorage.getItem(k)||'[]'); } catc
 function save(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
 
-var RULES = 'The attached PDF contains practice exam questions, with answers and possibly explanations (inline, or in an answer key at the end). Extract up to 40 multiple-choice questions, in order. Output ONLY JSON Lines, one JSON object per line, no code fences and no other text. Each line: {"q":"full question stem","choices":["choice text without the letter label", ...],"answer":"A","exp":"short explanation from the PDF, or one concise sentence of your own if the PDF gives none"}. "answer" is the correct choice letter. Use the answer key if there is one. If you cannot find the correct answer for a question, set "answer" to null. Keep lab values and tables in the stem as plain text. Skip questions that cannot be read without a picture. Do not invent questions that are not in the PDF.';
+var RULES = 'The attached PDF contains practice exam questions, with answers and possibly explanations (inline, or in an answer key at the end). Extract up to 30 multiple-choice questions, in order. Output ONLY JSON Lines, one JSON object per line, no code fences and no other text. Each line: {"q":"full question stem","choices":["choice text without the letter label", ...],"answer":"A","exp":"explanation in 2 to 4 sentences"}. "answer" is the correct choice letter. Every question must have an "exp" that teaches: say why the correct answer is right and, briefly, why the main wrong choices are wrong. If the PDF has its own explanation, use it and expand it where thin. Use the answer key if there is one. If you cannot find the correct answer for a question, set "answer" to null. Keep lab values and tables in the stem as plain text. Skip questions that cannot be read without a picture. Do not invent questions that are not in the PDF.';
 
 function b64(file){
   return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(file); });
@@ -104,7 +102,7 @@ function render(){
   if (!CT.ready){ app.innerHTML='<section class="panel"><h2>Not switched on yet</h2><p class="muted">The site owner still has to finish setup.</p></section>'; return; }
   if (ex){ return ex.done ? renderResults() : renderExam(); }
   var h = '<section class="panel"><h2>Add PDFs</h2><div class="drop" id="drop">Drop PDFs here or tap to choose. You can add several at once.<input type="file" id="file" accept="application/pdf,.pdf" multiple hidden></div>';
-  h += '<p class="muted" style="font-size:13px;margin:8px 0 0">Best with text PDFs, up to 40 questions each. Questions that depend on a picture are skipped. Only upload material you are allowed to use.</p>';
+  h += '<p class="muted" style="font-size:13px;margin:8px 0 0">Best with text PDFs, up to 30 questions each. Questions that depend on a picture are skipped. Only upload material you are allowed to use.</p>';
   jobs.forEach(function(j){ h += '<div class="set"><b>'+esc(j.name)+'</b><span class="muted">'+(j.err?'':(j.done?j.n+' questions':'Reading... '+j.n+' so far'))+'</span>'+(j.err?'<span class="err">'+esc(j.err)+'</span>':'')+'</div>'; });
   h += '</section>';
   h += '<section class="panel"><h2>Your question sets</h2>';
@@ -203,7 +201,6 @@ function renderResults(){
   app.innerHTML = h;
 }
 app.addEventListener('change', function(e){ if (e.target.id==='rf' && ex){ ex.filter=e.target.value; renderResults(); } });
-CT.mount(document.getElementById('auth'));
 render();
 </script>
 </body>
