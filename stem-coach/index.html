@@ -76,6 +76,7 @@ textarea{
 .card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 16px; display:flex; flex-direction:column; gap:14px; min-width:0}
 .card .step{font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.06em; text-transform:uppercase}
 .card h2{font-size:18px; line-height:1.35; margin:0; text-wrap:balance}
+.modes{display:flex;flex-wrap:wrap;gap:6px 18px;margin:4px 0 8px}.grp{width:100%;max-width:420px;font:inherit;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);margin-bottom:8px}
 .lvl{display:inline-flex;align-self:flex-start;width:max-content;max-width:100%;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin:0 0 6px}.lvl button{font:600 14px var(--font);border:0;background:var(--surface);color:var(--muted);padding:8px 14px;cursor:pointer}.lvl button+button{border-left:1.5px solid var(--line)}.lvl button[aria-checked=true]{background:var(--accent);color:#fff}.lvlhint{margin:0 0 14px;font-size:13.5px}
 .card .sub{margin:-6px 0 0; color:var(--muted); font-size:14px}
 .opts{display:flex; flex-direction:column; gap:8px}
@@ -152,10 +153,10 @@ tr.me td{background:var(--good-soft)}
 <script src="../auth.js?v=3"></script>
 <script src="../nav.js?v=12"></script>
 <script>
-var lim = { images:{ maxCount:4, mediaTypes:['image/png','image/jpeg','image/webp'] } }, MAXIMG = 4, hist = [];
+var lim = { images:{ maxCount:4, mediaTypes:['image/png','image/jpeg','image/webp'] } }, MAXIMG = 20, hist = [];
 var view = 'stem';
 var cases = [], cur = -1;
-var up = { files:[], text:'' };
+var up = { files:[], text:'', mode:'each', groups:'' };
 var stage = document.getElementById('stage'), tabsEl = document.getElementById('tabs');
 
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
@@ -225,6 +226,26 @@ function progress(c){
   if (!c.steps[c.st.i] || (c.reveal && c.st.solved && !c.revealShown)) renderStage(); else renderBar(c);
 }
 
+function groupFiles(u){
+  var f = u.files; if (!f.length) return [];
+  if (u.mode==='one' || f.length===1) return [f.slice(0,4)];
+  if (u.mode==='custom' && u.groups.trim()){
+    var used = {}, out = [];
+    u.groups.split(/[,;\n]+/).forEach(function(part){ var g = (part.match(/\d+/g)||[]).map(Number).filter(function(n){ return n>=1 && n<=f.length && !used[n]; }); g.forEach(function(n){ used[n]=1; }); if (g.length) out.push(g.slice(0,4).map(function(n){ return f[n-1]; })); });
+    f.forEach(function(x,k){ if (!used[k+1]) out.push([x]); });
+    return out;
+  }
+  return f.map(function(x){ return [x]; });
+}
+async function splitText(t){
+  if (t.length < 400) return [t];
+  try {
+    var r = await sample('Split the text below into separate exam questions. Each question is its stem plus its own answer choices. Output only a JSON array of strings, one string per question, copying the text exactly. If it is only one question, output an array with one string.\n\nTEXT:\n' + t.slice(0,30000), { modelTier:'quick', cache:false });
+    var m = r.text.match(/\[[\s\S]*\]/); var a = m ? JSON.parse(m[0]) : null;
+    if (Array.isArray(a) && a.length) return a.filter(function(x){ return typeof x==='string' && x.trim(); }).slice(0,20);
+  } catch(e){}
+  return [t];
+}
 async function gen(c){
   c.generating = true; c.error = null; c.stopped = false;
   c.ctl = new AbortController();
@@ -258,7 +279,7 @@ function errCopy(e){
 
 function renderTabs(){
   var h = cases.map(function(c,k){
-    return '<button type="button" class="tab" aria-selected="'+(k===cur)+'" data-case="'+k+'">'+esc(c.title||'Reading')+'</button>';
+    return '<button type="button" class="tab" aria-selected="'+(k===cur)+'" data-case="'+k+'">'+esc(c.title||(c.queued?'Queued':'Reading'))+'</button>';
   }).join('');
   h += '<button type="button" class="tab new" aria-selected="'+(cur===-1)+'" data-case="-1">+ New question</button>';
   tabsEl.innerHTML = h;
@@ -278,9 +299,14 @@ function uploadHTML(){
         return '<div class="thumb"><img src="'+f.url+'" alt="Screenshot '+(k+1)+'" data-zoomurl="'+f.url+'"><button type="button" data-act="rm" data-k="'+k+'" aria-label="Remove screenshot '+(k+1)+'">×</button><span>Screenshot '+(k+1)+'</span></div>';
       }).join('')+'</div>';
     }
+    if (up.files.length>1){
+      var M=[['each','Each screenshot is its own question'],['one','All of them are one question'],['custom','Other: group them myself']];
+      h += '<div class="modes" role="radiogroup" aria-label="How the screenshots group">'+M.map(function(m){ return '<label class="check"><input type="radio" name="mode" data-mode="'+m[0]+'"'+(up.mode===m[0]?' checked':'')+'><span>'+m[1]+'</span></label>'; }).join('')+'</div>';
+      if (up.mode==='custom') h += '<input type="text" id="groups" class="grp" placeholder="Screenshot numbers, for example 1+2, 3, 4+5" value="'+esc(up.groups)+'">';
+    }
   }
   h += '<div><label class="muted" for="qtext">'+(canImg?'Or add the question as text':'Paste the question as text')+'</label>'
-    +  '<textarea id="qtext" placeholder="Paste the stem and the answer choices">'+esc(up.text)+'</textarea></div>'
+    +  '<textarea id="qtext" placeholder="Paste one or more questions with their answer choices">'+esc(up.text)+'</textarea></div>'
     +  '<div class="row"><button type="button" class="btn" data-act="start"'+((up.files.length||up.text.trim())?'':' disabled')+'>Start coaching</button>'
     +  '<span class="muted">Please leave out patient names and other identifying details.</span></div></section>';
   return h;
@@ -348,6 +374,7 @@ function cardHTML(c){
       return fbHtml('note','Stopped. Start again when you are ready.','Stopped')
         + '<div class="row"><button type="button" class="btn" data-act="retry">Try again</button></div>';
     }
+    if (c.queued) return '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>Waiting for the questions before it</span></div>';
     return '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>'+(i===0?'Reading the question':'Preparing the next step')+'</span><span class="spacer"></span>'
       + '<button type="button" class="btn ghost" data-act="stop">Stop</button></div>'
       + '<div class="row">'+(i>0?'<button type="button" class="btn ghost" data-act="back">Back</button>':'')+'</div>';
@@ -370,7 +397,7 @@ function cardHTML(c){
   if (st.otherFb[i]) h += fbHtml('note', esc(st.otherFb[i]), 'On your reasoning');
   if (st.solved && s.type==='final'){
     if (c.reveal){ h += revealHTML(c.reveal); c.revealShown = true; h += chatHTML(c); }
-    else if (c.generating) h += '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>Preparing the explanation</span></div>';
+    else if (c.generating || c.queued) h += '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>'+(c.queued?'Waiting for the questions before it':'Preparing the explanation')+'</span></div>';
   }
   h += '<div class="row"><button type="button" class="btn ghost" data-act="back"'+(i===0?' disabled':'')+'>Back</button><span class="spacer"></span>';
   if (s.type==='final'){
@@ -414,9 +441,11 @@ document.addEventListener('paste', function(e){
 });
 stage.addEventListener('change', function(e){
   if (e.target.id==='file'){ addFiles(e.target.files); }
+  if (e.target.dataset && e.target.dataset.mode){ up.mode = e.target.dataset.mode; renderStage(); }
 });
 stage.addEventListener('input', function(e){
   var c = cases[cur];
+  if (e.target.id==='groups'){ up.groups = e.target.value; }
   if (e.target.id==='qtext'){ up.text = e.target.value; var b=stage.querySelector('[data-act="start"]'); if (b) b.disabled = !(up.files.length||up.text.trim()); }
   if (e.target.id==='otherTxt' && c){ c.st.other[c.st.i] = { text:e.target.value, saved:false }; }
 });
@@ -470,7 +499,7 @@ async function ask(c, q){
 }
 
 /* ---------- actions ---------- */
-stage.addEventListener('click', function(e){
+stage.addEventListener('click', async function(e){
   var z = e.target.closest('[data-zoomurl]');
   if (z){ document.getElementById('zoomImg').src = z.dataset.zoomurl; zoomEl.hidden = false; return; }
   var el = e.target.closest('[data-act]'); if(!el) return;
@@ -479,11 +508,16 @@ stage.addEventListener('click', function(e){
   if (act==='rm'){ var f=up.files.splice(+el.dataset.k,1)[0]; if(f) URL.revokeObjectURL(f.url); renderStage(); return; }
   if (act==='start'){
     if (!sample) return;
-    var c = { title:'', files:up.files.slice(), text:up.text.trim(), level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false };
-    cases.push(c); cur = cases.length-1;
-    up = { files:[], text:'' };
+    var groups = groupFiles(up), text = up.text.trim(), lvl = LEVEL;
+    up = { files:[], text:'', mode:up.mode, groups:'' };
+    var texts = text ? await splitText(text) : [];
+    var jobs = groups.map(function(g){ return { files:g, text:'' }; }).concat(texts.map(function(t){ return { files:[], text:t }; }));
+    if (!jobs.length) return;
+    var made = jobs.map(function(j){ var c = { title:'', files:j.files, text:j.text, level:lvl, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false, queued:true }; cases.push(c); return c; });
+    cur = cases.length - made.length;
     renderStage(); window.scrollTo({top:0});
-    gen(c); return;
+    for (var q=0;q<made.length;q++){ made[q].queued=false; await gen(made[q]); }
+    return;
   }
   var c2 = cases[cur]; if (!c2) return;
   var st = c2.st, i = st.i, s = c2.steps[i];

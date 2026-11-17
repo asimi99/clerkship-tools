@@ -48,6 +48,7 @@ select,input[type=number]{font:inherit;padding:6px 8px;border:1.5px solid var(--
   <div id="app"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="../config.js?v=3"></script>
 <script src="../auth.js?v=3"></script>
 <script src="../nav.js?v=12"></script>
@@ -60,7 +61,7 @@ function load(k){ try { return JSON.parse(localStorage.getItem(k)||'[]'); } catc
 function save(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
 
-var RULES = 'The attached PDF contains practice exam questions, with answers and possibly explanations (inline, or in an answer key at the end). Extract up to 30 multiple-choice questions, in order. Output ONLY JSON Lines, one JSON object per line, no code fences and no other text. Each line: {"q":"full question stem","choices":["choice text without the letter label", ...],"answer":"A","exp":"explanation in 2 to 4 sentences"}. "answer" is the correct choice letter. Every question must have an "exp" that teaches: say why the correct answer is right and, briefly, why the main wrong choices are wrong. If the PDF has its own explanation, use it and expand it where thin. Use the answer key if there is one. If you cannot find the correct answer for a question, set "answer" to null. Keep lab values and tables in the stem as plain text. Skip questions that cannot be read without a picture. Do not invent questions that are not in the PDF.';
+var RULES = 'The attached PDF contains practice exam questions, with answers and possibly explanations (inline, or in an answer key at the end). The PDF may hold one test or several separate tests (for example Form 1 and Form 2, or Block 1 and Block 2, each with its own numbering), and the questions and the answer key may be in different parts of the file. Extract up to 60 multiple-choice questions, in order. Output ONLY JSON Lines, one JSON object per line, no code fences and no other text. Each line: {"test":"name of the test this question belongs to, such as Form 2 or Block 1, or an empty string if the PDF is one test","num":question number as printed,"q":"full question stem","choices":["choice text without the letter label", ...],"answer":"A","exp":"explanation in 2 to 4 sentences"}. "answer" is the correct choice letter. Every question must have an "exp" that teaches: say why the correct answer is right and, briefly, why the main wrong choices are wrong. If the PDF has its own explanation, use it and expand it where thin. Use the answer key if there is one, and match each answer to its own test and question number. If you cannot find the correct answer for a question, set "answer" to null. Keep lab values and tables in the stem as plain text. Skip questions that cannot be read without a picture. Do not invent questions that are not in the PDF.';
 
 function b64(file){
   return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(file); });
@@ -80,18 +81,36 @@ function parseLine(l){
   try { var o = JSON.parse(l); if (!o.q || !Array.isArray(o.choices) || o.choices.length<2) return null;
     o.choices = o.choices.map(function(c){ return String(c).replace(/^\(?[A-Ha-h][\).:]\s+/,''); });
     o.answer = (o.answer && /^[A-Ha-h]$/.test(String(o.answer).trim())) ? String(o.answer).trim().toUpperCase() : null;
-    return { q:String(o.q), choices:o.choices, answer:o.answer, exp:o.exp?String(o.exp):'' }; } catch(e){ return null; }
+    return { q:String(o.q), choices:o.choices, answer:o.answer, exp:o.exp?String(o.exp):'', test:o.test?String(o.test).trim():'' }; } catch(e){ return null; }
+}
+function baseName(n){ return n.replace(/\.pdf$/i,'').replace(/[\s_-]*(questions?|answers?|answer key|key|solutions?|explanations?|qs|ans)[\s_-]*/ig,' ').replace(/\s+/g,' ').trim().toLowerCase(); }
+async function mergePdfs(files){
+  if (files.length===1) return files[0];
+  var out = await PDFLib.PDFDocument.create();
+  files.sort(function(a,b){ return /answer|key|solution/i.test(a.name) - /answer|key|solution/i.test(b.name); });
+  for (var i=0;i<files.length;i++){ var d = await PDFLib.PDFDocument.load(await files[i].arrayBuffer(), { ignoreEncryption:true }); var pg = await out.copyPages(d, d.getPageIndices()); pg.forEach(function(p){ out.addPage(p); }); }
+  var bytes = await out.save(); return new File([bytes], files[0].name, { type:'application/pdf' });
 }
 async function addFiles(list){
   var arr = Array.prototype.slice.call(list).filter(function(f){ return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name); });
-  for (var i=0;i<arr.length;i++){
-    var f = arr[i], job = { name:f.name.replace(/\.pdf$/i,''), n:0, err:'', done:false, qs:[] };
-    if (f.size > 20*1024*1024){ job.err='That PDF is over 20 MB. Split it and try again.'; job.done=true; jobs.push(job); continue; }
+  var groups = {}; arr.forEach(function(f){ var k = baseName(f.name) || f.name; (groups[k] = groups[k] || []).push(f); });
+  var keys = Object.keys(groups);
+  for (var i=0;i<keys.length;i++){
+    var fs = groups[keys[i]], label = fs.length>1 ? fs[0].name.replace(/\.pdf$/i,'').replace(/[\s_-]*(questions?|answers?|answer key|key|solutions?)\s*$/i,'').trim() : fs[0].name.replace(/\.pdf$/i,'');
+    var job = { name: label + (fs.length>1 ? ' (questions + answers)' : ''), n:0, err:'', done:false, qs:[] };
     jobs.push(job); render();
+    var f; try { f = await mergePdfs(fs); } catch(e){ f = fs[0]; }
+    if (f.size > 20*1024*1024){ job.err='That PDF is over 20 MB. Split it and try again.'; job.done=true; render(); continue; }
     try { await post(f, function(l){ var q=parseLine(l); if (q){ job.qs.push(q); job.n=job.qs.length; render(); } }); }
-    catch(e){ job.err = e.code==='limit' ? 'You have used today\'s PDF uploads. Sign in with your email for more, or try again tomorrow.' : (e.code==='big' ? 'That PDF is too large.' : 'Could not read that PDF. Try again.'); }
+    catch(e){ job.err = e.code==='limit' ? 'You have used today\'s PDF uploads. Sign in for more, or try again tomorrow.' : (e.code==='big' ? 'That PDF is too large.' : 'Could not read that PDF. Try again.'); }
     job.done = true;
-    if (job.qs.length){ sets.push({ id:Date.now()+'-'+i, name:job.name, qs:job.qs }); save(LS, sets); picked[sets[sets.length-1].id]=true; }
+    if (job.qs.length){
+      var byTest = {}, order = [];
+      job.qs.forEach(function(q){ var t = q.test || ''; if (!byTest[t]){ byTest[t] = []; order.push(t); } byTest[t].push(q); });
+      job.tests = order.length;
+      order.forEach(function(t, k){ var id = Date.now()+'-'+i+'-'+k; sets.push({ id:id, name: order.length>1 || t ? (label + (t ? ' · ' + t : '')) : label, qs:byTest[t] }); picked[id] = true; });
+      save(LS, sets);
+    }
     else if (!job.err) job.err = 'No questions found in that PDF.';
     render();
   }
@@ -101,8 +120,8 @@ function render(){
   if (!CT.ready){ app.innerHTML='<section class="panel"><h2>Not switched on yet</h2><p class="muted">The site owner still has to finish setup.</p></section>'; return; }
   if (ex){ return ex.done ? renderResults() : renderExam(); }
   var h = '<section class="panel"><h2>Add PDFs</h2><div class="drop" id="drop">Drop PDFs here or tap to choose. You can add several at once.<input type="file" id="file" accept="application/pdf,.pdf" multiple hidden></div>';
-  h += '<p class="muted" style="font-size:13px;margin:8px 0 0">Best with text PDFs, up to 30 questions each. Questions that depend on a picture are skipped. Only upload material you are allowed to use.</p>';
-  jobs.forEach(function(j){ h += '<div class="set"><b>'+esc(j.name)+'</b><span class="muted">'+(j.err?'':(j.done?j.n+' questions':'Reading... '+j.n+' so far'))+'</span>'+(j.err?'<span class="err">'+esc(j.err)+'</span>':'')+'</div>'; });
+  h += '<p class="muted" style="font-size:13px;margin:8px 0 0">Best with text PDFs. A file can hold several tests, and a questions PDF and its answers PDF with matching names are read together. Questions that depend on a picture are skipped. Only upload material you are allowed to use.</p>';
+  jobs.forEach(function(j){ h += '<div class="set"><b>'+esc(j.name)+'</b><span class="muted">'+(j.err?'':(j.done?j.n+' questions'+(j.tests>1?' in '+j.tests+' tests':''):'Reading... '+j.n+' so far'))+'</span>'+(j.err?'<span class="err">'+esc(j.err)+'</span>':'')+'</div>'; });
   h += '</section>';
   h += '<section class="panel"><h2>Your question sets</h2>';
   if (!sets.length) h += '<p class="muted">Nothing yet. Added sets are saved in this browser.</p>';
