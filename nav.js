@@ -69,15 +69,51 @@
 
   var am = document.createElement('div'); am.className = 'ctn-modal'; am.hidden = true; document.body.appendChild(am);
   var acct = h.querySelector('#ctna'), mode = 'in';
-  function paint(){ var u = window.CT && CT.user; acct.textContent = u ? (u.email || 'Account').split('@')[0] : 'Sign in'; }
+  function paint(){ var u = window.CT && CT.user; acct.textContent = u ? (CT.username || (u.email || 'Account').split('@')[0]) : 'Sign in'; }
+  var GCID = (window.CT_CONFIG && CT_CONFIG.GOOGLE_CLIENT_ID) || '62251828530-6cshlc720afjq3k75ek0fsep1pv9krma.apps.googleusercontent.com';
+  var gsiP = null;
+  function gsi(){ if (!gsiP) gsiP = new Promise(function(res, rej){ if (window.google && google.accounts && google.accounts.id) return res(); var sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.onload = function(){ res(); }; sc.onerror = rej; document.head.appendChild(sc); setTimeout(rej, 6000); }); return gsiP; }
+  async function sha256hex(t){ var b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return Array.prototype.map.call(new Uint8Array(b), function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }
+  async function mountGoogle(){
+    var box = am.querySelector('#ctngis'), fb = am.querySelector('[data-g]'); if (!box) return;
+    try {
+      await gsi();
+      var raw = Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(16)), function(x){ return ('0'+x.toString(16)).slice(-2); }).join('');
+      var hashed = await sha256hex(raw);
+      google.accounts.id.initialize({ client_id:GCID, nonce:hashed, use_fedcm_for_button:true, callback: async function(resp){
+        var er = am.querySelector('#ctner');
+        var r = await CT.sb.auth.signInWithIdToken({ provider:'google', token:resp.credential, nonce:raw });
+        if (r.error){ if (er) er.textContent = 'Google sign in did not go through. Try again or use email.'; return; }
+        am.hidden = true;
+      }});
+      box.innerHTML = '';
+      google.accounts.id.renderButton(box, { theme:'outline', size:'large', text:'continue_with', shape:'rectangular', width: Math.min(400, box.clientWidth || 320), logo_alignment:'center' });
+      if (fb) fb.hidden = true;
+    } catch(e){ if (fb) fb.hidden = false; box.innerHTML = ''; }
+  }
+  async function loadName(){
+    CT.username = null;
+    if (!CT.user || !CT.sb) { paint(); return; }
+    try { var r = await CT.sb.from('profiles').select('username').eq('user_id', CT.user.id).maybeSingle(); CT.username = r.data ? r.data.username : null; } catch(e){}
+    paint();
+    if (!CT.username && !askedName){ askedName = true; nameModal(true); }
+  }
+  var askedName = false;
+  function suggest(){ var u = CT.user || {}, m = u.user_metadata || {}; var s = (m.full_name || m.name || (u.email||'').split('@')[0] || '').replace(/\s+/g,'.').replace(/[^A-Za-z0-9_.]/g,'').slice(0,20); return s.length >= 3 ? s : ''; }
+  function nameModal(first){
+    am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>'+(first?'Pick a username':'Change your username')+'</h2><p>'+(first?'This is the name shown on your account.':'Letters, numbers, dots and underscores.')+'</p>'
+      + '<form id="ctnname"><input id="ctnu" type="text" placeholder="Username" autocomplete="username" minlength="3" maxlength="20" pattern="[A-Za-z0-9_.]{3,20}" required value="'+(CT.username || suggest())+'"><p class="er" id="ctner"></p><button class="go" type="submit">Save</button></form></div>';
+    am.hidden = false; var i = am.querySelector('#ctnu'); if (i){ i.focus(); i.select(); }
+  }
+
   function modal(){
     if (!window.CT || !CT.ready){ am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>Accounts not ready</h2><p>Sign in is not switched on yet. Everything still works as a guest.</p></div>'; am.hidden = false; return; }
-    if (CT.user){ am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>Your account</h2><p>'+(CT.user.email||'')+'</p><button class="go" type="button" data-out>Sign out</button></div>'; am.hidden = false; return; }
+    if (CT.user){ am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>'+(CT.username ? CT.username.replace(/[<>&"]/g,'') : 'Your account')+'</h2><p>'+(CT.user.email||'')+'</p><button class="go" type="button" data-out>Sign out</button><button class="sw" type="button" data-rename>'+(CT.username?'Change username':'Pick a username')+'</button></div>'; am.hidden = false; return; }
     am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>'+(mode==='in'?'Sign in':'Create an account')+'</h2><p>'+(mode==='in'?'Your progress follows you to any device.':'Takes a few seconds. Saves your progress and gives you a bigger daily allowance.')+'</p>'
-      + '<button class="ctn-g" type="button" data-g><svg viewBox="0 0 48 48" width="18" height="18"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button><div class="ctn-or">or</div>'
+      + '<div id="ctngis" style="display:flex;justify-content:center;min-height:44px;margin-top:6px"></div><button class="ctn-g" type="button" data-g hidden><svg viewBox="0 0 48 48" width="18" height="18"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button><div class="ctn-or">or</div>'
       + '<form id="ctnform"><input id="ctne" type="email" placeholder="Email" autocomplete="email" required><input id="ctnp" type="password" placeholder="Password (6+ characters)" minlength="6" autocomplete="'+(mode==='in'?'current-password':'new-password')+'" required><p class="er" id="ctner"></p><button class="go" type="submit">'+(mode==='in'?'Sign in':'Create account')+'</button></form>'
       + '<button class="sw" type="button" data-sw>'+(mode==='in'?'New here? Create an account':'Already have an account? Sign in')+'</button></div>';
-    am.hidden = false; var e = am.querySelector('#ctne'); if (e) e.focus();
+    am.hidden = false; mountGoogle();
   }
   acct.onclick = modal;
   am.addEventListener('click', async function(ev){
@@ -86,10 +122,23 @@
     if (t.hasAttribute('data-sw')){ mode = mode==='in' ? 'up' : 'in'; modal(); return; }
     var g = t.closest && t.closest('[data-g]');
     if (g){ g.disabled = true; var r = await CT.sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.href.split('#')[0] } }); if (r && r.error){ g.disabled = false; var er = am.querySelector('#ctner'); if (er) er.textContent = 'Google sign in is not switched on yet. Use email for now.'; } return; }
+    if (t.hasAttribute('data-rename')){ nameModal(false); return; }
     if (t.hasAttribute('data-out')){ await CT.signOut(); am.hidden = true; return; }
   });
   am.addEventListener('submit', async function(ev){
     ev.preventDefault();
+    if (ev.target.id==='ctnname'){
+      var nu = am.querySelector('#ctnu').value.trim(), ner = am.querySelector('#ctner'), nb = am.querySelector('.go');
+      if (!/^[A-Za-z0-9_.]{3,20}$/.test(nu)){ ner.textContent = 'Use 3 to 20 letters, numbers, dots or underscores.'; return; }
+      nb.disabled = true; ner.textContent = '';
+      try {
+        var fr = await CT.sb.rpc('username_free', { name:nu });
+        if (fr.data === false){ ner.textContent = 'That username is taken.'; nb.disabled = false; return; }
+        var ur = await CT.sb.from('profiles').upsert({ user_id:CT.user.id, username:nu }, { onConflict:'user_id' });
+        if (ur.error){ ner.textContent = /duplicate|unique/i.test(ur.error.message||'') ? 'That username is taken.' : 'Could not save. Try again.'; nb.disabled = false; return; }
+      } catch(x){ ner.textContent = 'Could not save. Try again.'; nb.disabled = false; return; }
+      CT.username = nu; paint(); am.hidden = true; return;
+    }
     var em = am.querySelector('#ctne').value.trim(), pw = am.querySelector('#ctnp').value, er = am.querySelector('#ctner'), b = am.querySelector('.go');
     b.disabled = true; er.textContent = '';
     var r; try { r = mode==='in' ? await CT.signIn(em, pw) : await CT.signUp(em, pw); } catch(x){ r = { error:{ message:'' } }; }
@@ -101,5 +150,5 @@
     }
     am.hidden = true;
   });
-  if (window.CT) CT.onAuth(paint); paint();
+  if (window.CT) CT.onAuth(function(){ paint(); loadName(); }); paint();
 })();
