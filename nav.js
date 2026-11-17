@@ -1,4 +1,4 @@
-/* Shared top bar for every page: logo, back, forward, menu, account. */
+/* Shared top bar for every page: logo, menu, account. */
 (function(){
   var me = document.currentScript, src = me.src.split('?')[0], root = src.slice(0, src.lastIndexOf('/') + 1);
   var noauth = me.hasAttribute('data-noauth'), isStatic = me.hasAttribute('data-static');
@@ -35,7 +35,6 @@
   var path = location.href.split('#')[0].split('?')[0].replace(/index\.html$/,'');
   var h = document.createElement('header'); h.className = 'ctn';
   h.innerHTML = '<div class="ctn-in"><a class="ctn-logo" href="'+root+'" aria-label="Asim Ibrahim\'s Clerkship Tools, home">'+LOGO+'<span class="ctn-word"><small><b>A</b>sim <b>I</b>brahim\'s</small><span>Clerkship Tools</span></span></a><span class="ctn-sp"></span>'
-   + '<button class="ctn-b" id="ctnb" type="button" aria-label="Back">'+ARR('M15 18l-6-6 6-6')+'</button><button class="ctn-b" id="ctnf" type="button" aria-label="Forward">'+ARR('M9 18l6-6-6-6')+'</button>'
    + '<span class="ctn-rel"><button class="ctn-m" id="ctnm" type="button" aria-expanded="false"><span class="ctn-hide">Menu</span>'+ARR('M4 7h16M4 12h16M4 17h16').replace('<svg','<svg width="18" height="18"')+'</button>'
    + '<nav class="ctn-dd" id="ctnd" hidden>'+LINKS.map(function(l,i){ var hd = (l[3] && (i===0 || LINKS[i-1][3]!==l[3])) ? '<div class="ctn-gh">'+l[3]+'</div>' : ''; var on = l[1]===root ? (path===root) : path.indexOf(l[1])===0; return hd+'<a href="'+l[1]+'"'+(on?' class="on"':'')+'><b>'+l[0]+'</b><small>'+l[2]+'</small></a>'; }).join('')+'</nav></span>'
    + (noauth?'':'<button class="ctn-a" id="ctna" type="button">Sign in</button>')+'</div>';
@@ -44,8 +43,6 @@
   var cs = getComputedStyle(document.body), pl = parseFloat(cs.paddingLeft)||0, pr = parseFloat(cs.paddingRight)||0, pt = parseFloat(cs.paddingTop)||0;
   if (pl || pr || pt){ h.style.marginLeft = (-pl)+'px'; h.style.marginRight = (-pr)+'px'; h.style.marginTop = (-pt)+'px'; }
   var dd = h.querySelector('#ctnd'), mb = h.querySelector('#ctnm');
-  h.querySelector('#ctnb').onclick = function(){ history.back(); };
-  h.querySelector('#ctnf').onclick = function(){ history.forward(); };
   mb.onclick = function(e){ e.stopPropagation(); dd.hidden = !dd.hidden; mb.setAttribute('aria-expanded', String(!dd.hidden)); };
   document.addEventListener('click', function(e){ if (!dd.contains(e.target)) { dd.hidden = true; mb.setAttribute('aria-expanded','false'); } });
   document.addEventListener('keydown', function(e){ if (e.key==='Escape') dd.hidden = true; });
