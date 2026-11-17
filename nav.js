@@ -2,13 +2,29 @@
 (function(){
   var me = document.currentScript, src = me.src.split('?')[0], root = src.slice(0, src.lastIndexOf('/') + 1);
   var noauth = me.hasAttribute('data-noauth'), isStatic = me.hasAttribute('data-static');
-  var LINKS = [
-    ['Home', root, 'All tools', ''],
-    ['Stem Coach', root + 'stem-coach/', 'Screenshot a question, get coached to the answer', 'General'],
-    ['Practice Exams', root + 'exam/', 'Turn question PDFs into an NBME-style test', 'General'],
-    ['Peds Flowcharts', root + 'flowcharts/', '40 approach flowcharts, full size', 'Pediatrics'],
-    ['Peds Videos', 'https://asimi99.github.io/peds-shelf/', 'Review videos split by topic and system', 'Pediatrics']
+  var MAIN = [
+    ['Home', root, 'All tools'],
+    ['Stem Coach', root + 'stem-coach/', 'Screenshot a question, get coached to the answer'],
+    ['Practice Exams', root + 'exam/', 'Turn question PDFs into an NBME-style test']
   ];
+  var SHELF = [
+    ['OB/GYN', []],
+    ['Pediatrics', [['Peds Flowcharts', root + 'flowcharts/', '40 approach flowcharts, full size'], ['Peds Videos', 'https://asimi99.github.io/peds-shelf/', 'Review videos split by topic and system']]],
+    ['Internal Medicine', []], ['Family Medicine', []], ['Psychiatry', []], ['Surgery', []]
+  ];
+  function isOn(href){ return href===root ? (path===root) : (path.indexOf(href)===0 || location.href.indexOf(href)===0); }
+  function lk(l){ return '<a href="'+l[1]+'"'+(isOn(l[1])?' class="on"':'')+'><b>'+l[0]+'</b><small>'+l[2]+'</small></a>'; }
+  function menuHtml(){
+    var anyOn = SHELF.some(function(s){ return s[1].some(function(l){ return isOn(l[1]); }); });
+    var h = MAIN.map(lk).join('');
+    h += '<details class="ctn-x"'+(anyOn?' open':'')+'><summary>NBME shelves</summary><div class="ctn-xi">';
+    SHELF.forEach(function(s){
+      if(!s[1].length){ h += '<div class="ctn-none">'+s[0]+'<span>No tools yet</span></div>'; return; }
+      var on = s[1].some(function(l){ return isOn(l[1]); });
+      h += '<details class="ctn-x ctn-x2"'+(on?' open':'')+'><summary>'+s[0]+'</summary><div class="ctn-xi">'+s[1].map(lk).join('')+'</div></details>';
+    });
+    return h + '</div></details>';
+  }
   var F = 'Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
   var css = ''
    + '.ctn{background:rgba(255,255,255,.96);backdrop-filter:saturate(1.4) blur(8px);-webkit-backdrop-filter:saturate(1.4) blur(8px);color:#14202b;border-bottom:1px solid #dce3ea;font:500 14px/1.2 '+F+';position:'+(isStatic?'relative':'sticky')+';top:0;z-index:50;padding-top:env(safe-area-inset-top,0px)}'
@@ -22,6 +38,8 @@
    + '.ctn-a{height:36px;border:0;background:#1d4f8f;color:#fff!important;border-radius:9px;padding:0 14px;cursor:pointer;font-weight:600;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}.ctn-a:hover{background:#163d70}'
    + '.ctn-dd{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:calc(100% + 6px);width:min(340px,calc(100vw - 32px));background:#fff;border:1px solid #dce3ea;border-radius:12px;box-shadow:0 12px 32px rgba(20,32,43,.16);padding:6px;z-index:60}'
    + '.ctn-dd a{display:block;padding:10px 12px;border-radius:8px}.ctn-dd a b{display:block;font-weight:600;font-size:14.5px}.ctn-dd a small{color:#5b6876;font-size:12.5px}.ctn-dd a:hover{background:#f1f4f7}.ctn-dd a.on{background:#e6eef8}.ctn-dd a.on b{color:#1d4f8f}'
+   + '.ctn-x{border-top:1px solid #edf1f5;margin-top:4px;padding-top:4px}.ctn-x summary{list-style:none;cursor:pointer;padding:10px 12px;border-radius:8px;font-weight:600;font-size:14.5px;display:flex;justify-content:space-between;align-items:center}.ctn-x summary::-webkit-details-marker{display:none}.ctn-x summary:after{content:\'\';width:7px;height:7px;border-right:2px solid #5b6876;border-bottom:2px solid #5b6876;transform:rotate(45deg);margin-right:4px;transition:transform .15s}.ctn-x[open]>summary:after{transform:rotate(-135deg)}.ctn-x summary:hover{background:#f1f4f7}.ctn-xi{padding-left:10px}.ctn-x2{border:0;margin:0;padding:0}.ctn-x2 summary{font-weight:500}.ctn-none{padding:10px 12px;color:#8a96a3;font-size:14.5px;display:flex;justify-content:space-between}.ctn-none span{font-size:12px}'
+   + '@font-face{font-family:InterI;src:url('+root+'inter-i.woff2) format("woff2");font-weight:100 900;font-display:block}.ctn-si,.si{font-family:InterI,Inter,system-ui,sans-serif;font-feature-settings:"cv08"}'
    + '.ctn-rel{position:relative}.ctn-gh{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5b6876;padding:10px 12px 4px}'
    + '.ctn-modal{position:fixed;inset:0;background:rgba(20,32,43,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}.ctn-modal[hidden]{display:none}'
    + '.ctn-card{background:#fff;color:#14202b;border-radius:16px;padding:24px;width:100%;max-width:380px;font:400 15px/1.5 '+F+';box-shadow:0 20px 50px rgba(20,32,43,.25)}'
@@ -34,9 +52,9 @@
   var ARR = function(d){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="'+d+'"/></svg>'; };
   var path = location.href.split('#')[0].split('?')[0].replace(/index\.html$/,'');
   var h = document.createElement('header'); h.className = 'ctn';
-  h.innerHTML = '<div class="ctn-in"><a class="ctn-logo" href="'+root+'" aria-label="Asim Ibrahim\'s Clerkship Tools, home">'+LOGO+'<span class="ctn-word"><small><b>A</b>sim <b>I</b>brahim\'s</small><span>Clerkship Tools</span></span></a><span class="ctn-sp"></span>'
+  h.innerHTML = '<div class="ctn-in"><a class="ctn-logo" href="'+root+'" aria-label="Asim Ibrahim\'s Clerkship Tools, home">'+LOGO+'<span class="ctn-word"><small><b>A</b>sim <b class="ctn-si">I</b>brahim\'s</small><span>Clerkship Tools</span></span></a><span class="ctn-sp"></span>'
    + '<span class="ctn-rel"><button class="ctn-m" id="ctnm" type="button" aria-expanded="false"><span class="ctn-hide">Menu</span>'+ARR('M4 7h16M4 12h16M4 17h16').replace('<svg','<svg width="18" height="18"')+'</button>'
-   + '<nav class="ctn-dd" id="ctnd" hidden>'+LINKS.map(function(l,i){ var hd = (l[3] && (i===0 || LINKS[i-1][3]!==l[3])) ? '<div class="ctn-gh">'+l[3]+'</div>' : ''; var on = l[1]===root ? (path===root) : path.indexOf(l[1])===0; return hd+'<a href="'+l[1]+'"'+(on?' class="on"':'')+'><b>'+l[0]+'</b><small>'+l[2]+'</small></a>'; }).join('')+'</nav></span>'
+   + '<nav class="ctn-dd" id="ctnd" hidden>'+menuHtml()+'</nav></span>'
    + (noauth?'':'<button class="ctn-a" id="ctna" type="button">Sign in</button>')+'</div>';
   document.body.insertBefore(h, document.body.firstChild);
   // full width even when the page body has side padding
