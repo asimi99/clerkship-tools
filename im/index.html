@@ -286,7 +286,7 @@ function pdfs(){
 function pdf(id){
   const d=PDFS.find(x=>x.id===id);if(!d)return pdfs();
   main.innerHTML=`<section class="vhead"><p class="eyebrow"><a href="#pdfs">PDFs</a>${d.pages?' · '+d.pages+' pages':''}</p><h2>${esc(d.title)}</h2><div class="meta"><span>${esc(d.desc)}</span><a href="${d.file}">Open PDF</a></div></section>
-  ${EMBED||d.embed?`<iframe class="pdfv" src="${d.embed||d.file+'#view=FitH'}" title="${esc(d.title)}" allow="autoplay"></iframe>`:`<a class="tile" href="${d.file}" style="max-width:420px"><span class="tn">Open ${esc(d.short)}</span><span class="muted" style="font-size:13.5px">Opens the PDF.</span></a>`}`;
+  ${d.ext?`<a class="tile" href="${d.file}" target="_blank" rel="noopener" style="max-width:420px"><span class="tn">Open ${esc(d.short)}</span><span class="muted" style="font-size:13.5px">${esc(d.extNote||'Opens in a new tab.')}</span></a>`:EMBED||d.embed?`<iframe class="pdfv" src="${d.embed||d.file+'#view=FitH'}" title="${esc(d.title)}" allow="autoplay"></iframe>`:`<a class="tile" href="${d.file}" style="max-width:420px"><span class="tn">Open ${esc(d.short)}</span><span class="muted" style="font-size:13.5px">Opens the PDF.</span></a>`}`;
   scrollTo(0,0);
 }
 function search(q){
