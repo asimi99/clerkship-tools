@@ -150,5 +150,5 @@
     }
     am.hidden = true;
   });
-  if (window.CT) CT.onAuth(function(){ paint(); loadName(); }); paint();
+  if (window.CT) CT.onAuth(function(){ paint(); loadName(); }); paint(); if (window.CT && CT.user) loadName();
 })();
