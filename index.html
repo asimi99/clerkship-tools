@@ -3,38 +3,48 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Clerkship Tools</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="site.css">
+<title>Awesome Ibrahim's Clerkship Tools</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231d4f8f'/%3E%3Ctext x='19.5' y='27.5' text-anchor='middle' font-family='Arial' font-weight='800' font-size='18' fill='white'%3EAI%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="site.css?v=3">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 var(--font)}
-.hero{background:#4F2C1D;color:#fff;padding:34px max(16px,env(safe-area-inset-left,0px)) 40px}
-.hero>div{max-width:860px;margin:0 auto}
-.hero h1{font-size:32px;line-height:1.15;margin:0 0 8px;letter-spacing:-.02em}
-.hero p{margin:0;color:#e8d9cf;max-width:56ch}
-body .wrap{max-width:860px;margin:-22px auto 0;padding:0 max(16px,env(safe-area-inset-left,0px)) 56px}
-.tools{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
-.tool{display:block;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--gold);border-radius:12px;padding:18px;color:inherit;text-decoration:none;box-shadow:0 2px 8px rgba(79,44,29,.08)}
-.tool:hover{border-top-color:var(--accent);transform:translateY(-1px)}
-.tool b{display:block;font-size:18px;margin-bottom:6px;color:var(--accent)}
-.tool span{color:var(--muted);font-size:14px}
-.note{color:var(--muted);font-size:13px;margin-top:24px}
+body{font-size:15px;line-height:1.55}
+.home{max-width:1000px;margin:0 auto;padding:44px max(16px,env(safe-area-inset-left,0px)) 64px}
+.hero{margin-bottom:30px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:99px;margin-bottom:14px}
+.hero h1{font-size:clamp(28px,5vw,40px);line-height:1.12;letter-spacing:-.025em;margin:0 0 10px;text-wrap:balance}
+.hero h1 b{color:var(--accent)}
+.hero p{margin:0;color:var(--muted);font-size:16px;max-width:58ch}
+.tools{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.tool{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;color:inherit;text-decoration:none;box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
+.tool:hover{border-color:var(--accent-2);transform:translateY(-2px)}
+.ic{width:42px;height:42px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.ic svg{width:22px;height:22px}
+.tool b{font-size:17px;letter-spacing:-.01em}
+.tool span{color:var(--muted);font-size:14px;flex:1}
+.tool i{font-style:normal;font-weight:600;font-size:14px;color:var(--accent)}
+.note{color:var(--muted);font-size:13px;margin-top:26px}
 </style>
 </head>
 <body>
-<section class="hero"><div><h1>Clerkship Tools</h1><p>Study tools for the class. Use them as a guest, or create an account to save your progress.</p></div></section>
-<div class="wrap">
+<main class="home">
+  <section class="hero">
+    <span class="eyebrow">Free for the class</span>
+    <h1><b>A</b>wesome <b>I</b>brahim's Clerkship Tools</h1>
+    <p>Study tools for clerkship and shelf prep. Use everything as a guest, or create an account to save your progress.</p>
+  </section>
   <div class="tools">
-    <a class="tool" href="./stem-coach/"><b>Stem Coach</b><span>Add a screenshot of any question. It coaches you to the answer one decision at a time.</span></a>
-    <a class="tool" href="./exam/"><b>Practice Exams</b><span>Upload PDFs of questions and answers. It builds an NBME-style online test and explains every answer after.</span></a>
-    <a class="tool" href="https://asimi99.github.io/peds-shelf/"><b>High Yield Videos</b><span>Peds review videos split by topic with exact timestamps, approach flowcharts and a playlist for every system.</span></a>
+    <a class="tool" href="./stem-coach/"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><b>Stem Coach</b><span>Add a screenshot of any question. It coaches you to the answer one decision at a time.</span><i>Open</i></a>
+    <a class="tool" href="./exam/"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span><b>Practice Exams</b><span>Upload PDFs of questions and answers. It builds an NBME-style test and explains every answer after.</span><i>Open</i></a>
+    <a class="tool" href="./flowcharts/"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="5" rx="1"/><rect x="14" y="16" width="7" height="5" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/><path d="M6.5 8v8M6.5 12h11v4"/></svg></span><b>High Yield Flowcharts</b><span>40 approach flowcharts for the peds shelf, full size, with links to the video moments.</span><i>Open</i></a>
+    <a class="tool" href="https://asimi99.github.io/peds-shelf/"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg></span><b>High Yield Videos</b><span>Peds review videos split by topic with exact timestamps, plus a playlist for every system.</span><i>Open</i></a>
   </div>
-  <p class="note">More tools get added here as they are built.</p>
-</div>
+  <p class="note">More tools get added as they are built.</p>
+</main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="./config.js"></script>
-<script src="./auth.js"></script>
-<script src="./nav.js"></script>
+<script src="./config.js?v=3"></script>
+<script src="./auth.js?v=3"></script>
+<script src="./nav.js?v=3"></script>
 </body>
 </html>

@@ -1,54 +1,66 @@
-/* Shared top bar: back, forward, menu, account. Works on every page of the site. */
+/* Shared top bar for every page: logo, back, forward, menu, account. */
 (function(){
-  var me = document.currentScript, src = me.src, root = src.slice(0, src.lastIndexOf('/') + 1);
+  var me = document.currentScript, src = me.src.split('?')[0], root = src.slice(0, src.lastIndexOf('/') + 1);
   var noauth = me.hasAttribute('data-noauth'), isStatic = me.hasAttribute('data-static');
   var LINKS = [
-    ['Home', root],
-    ['Stem Coach', root + 'stem-coach/'],
-    ['Practice Exams', root + 'exam/'],
-    ['High Yield Videos', 'https://asimi99.github.io/peds-shelf/']
+    ['Home', root, 'All tools'],
+    ['Stem Coach', root + 'stem-coach/', 'Screenshot a question, get coached to the answer'],
+    ['Practice Exams', root + 'exam/', 'Turn question PDFs into an NBME-style test'],
+    ['High Yield Flowcharts', root + 'flowcharts/', '40 approach flowcharts, full size'],
+    ['High Yield Videos', 'https://asimi99.github.io/peds-shelf/', 'Review videos split by topic and system']
   ];
-  var css = '.ctn{background:#4F2C1D;color:#fff;border-bottom:3px solid #F2A900;font:600 14px/1.2 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;position:'+(isStatic?'relative':'sticky')+';top:0;z-index:50;padding-top:env(safe-area-inset-top,0px)}'
-   + '.ctn *{box-sizing:border-box}.ctn-in{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:9px max(14px,env(safe-area-inset-right,0px)) 9px max(14px,env(safe-area-inset-left,0px))}'
-   + '.ctn button,.ctn a{font:inherit;color:#fff;text-decoration:none}.ctn-b{width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:transparent;cursor:pointer;font-size:20px;line-height:1;padding:0}'
-   + '.ctn-b:hover,.ctn-m:hover,.ctn-a:hover{background:rgba(255,255,255,.14)}.ctn-brand{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:0 6px;white-space:nowrap}.ctn-brand b{color:#F2A900}'
-   + '.ctn-sp{flex:1}.ctn-m,.ctn-a{border:1px solid rgba(255,255,255,.35);background:transparent;border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap}.ctn-a{background:#F2A900;border-color:#F2A900;color:#2b1710}.ctn-a:hover{background:#ffbe2e}'
-   + '.ctn-dd{background:#fff;color:#14202b;border-bottom:1px solid #d6dfe6;box-shadow:0 8px 20px rgba(0,0,0,.18)}.ctn-dd[hidden]{display:none}.ctn-dd a{display:block;color:#14202b;padding:13px max(18px,env(safe-area-inset-left,0px));border-top:1px solid #eee;font-weight:600}.ctn-dd a:first-child{border-top:0}.ctn-dd a:hover{background:#f6efe9}.ctn-dd a.on{color:#4F2C1D;box-shadow:inset 4px 0 #F2A900;background:#fbf6f1}'
-   + '.ctn-modal{position:fixed;inset:0;background:rgba(30,15,8,.55);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}.ctn-modal[hidden]{display:none}.ctn-card{background:#fff;color:#14202b;border-radius:14px;padding:22px;width:100%;max-width:380px;font:400 15px/1.5 Inter,system-ui,sans-serif}'
-   + '.ctn-card h2{margin:0 0 4px;font-size:20px;color:#4F2C1D}.ctn-card p{margin:0 0 14px;color:#566879;font-size:14px}.ctn-card input{width:100%;font:inherit;padding:10px 12px;border:1.5px solid #cfd8e0;border-radius:8px;margin-bottom:10px;background:#fff;color:#14202b}.ctn-card input:focus{outline:2px solid #F2A900;outline-offset:-1px}'
-   + '.ctn-card .go{width:100%;font:600 15px Inter,system-ui,sans-serif;padding:11px;border-radius:8px;border:0;background:#4F2C1D;color:#fff;cursor:pointer}.ctn-card .sw{background:none;border:0;color:#4F2C1D;font:600 14px Inter,system-ui,sans-serif;cursor:pointer;padding:10px 0 0;width:100%;text-decoration:underline}.ctn-card .er{color:#b0342a;font-size:14px;min-height:20px;margin:0 0 8px}.ctn-card .x{float:right;background:none;border:0;font-size:22px;cursor:pointer;color:#566879;line-height:1}'
-   + '@media (max-width:520px){.ctn-brand{display:none}}';
+  var F = 'Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  var css = ''
+   + '.ctn{background:rgba(255,255,255,.96);backdrop-filter:saturate(1.4) blur(8px);-webkit-backdrop-filter:saturate(1.4) blur(8px);color:#14202b;border-bottom:1px solid #dce3ea;font:500 14px/1.2 '+F+';position:'+(isStatic?'relative':'sticky')+';top:0;z-index:50;padding-top:env(safe-area-inset-top,0px)}'
+   + '.ctn *{box-sizing:border-box}.ctn-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:8px;height:62px;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}'
+   + '.ctn a,.ctn button{font:inherit;color:inherit;text-decoration:none}'
+   + '.ctn-logo{display:flex;align-items:center;gap:10px;min-width:0}.ctn-logo svg{width:38px;height:38px;flex:none;border-radius:10px;box-shadow:0 2px 6px rgba(29,79,143,.3)}'
+   + '.ctn-word{display:flex;flex-direction:column;min-width:0;line-height:1.1}.ctn-word small{font-size:12.5px;font-weight:500;color:#5b6876;white-space:nowrap}.ctn-word small b{color:#1d4f8f;font-weight:800;font-size:14.5px}.ctn-word span{font-size:16px;font-weight:800;letter-spacing:-.01em;white-space:nowrap}'
+   + '.ctn-sp{flex:1}.ctn-b{width:36px;height:36px;border-radius:9px;border:1px solid #dce3ea;background:#fff;cursor:pointer;display:grid;place-items:center;padding:0;color:#14202b}'
+   + '.ctn-b svg{width:18px;height:18px}.ctn-b:hover,.ctn-m:hover{background:#f1f4f7}'
+   + '.ctn-m{height:36px;border:1px solid #dce3ea;background:#fff;border-radius:9px;padding:0 12px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px}'
+   + '.ctn-a{height:36px;border:0;background:#1d4f8f;color:#fff!important;border-radius:9px;padding:0 14px;cursor:pointer;font-weight:600;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}.ctn-a:hover{background:#163d70}'
+   + '.ctn-dd{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:calc(100% + 6px);width:min(340px,calc(100vw - 32px));background:#fff;border:1px solid #dce3ea;border-radius:12px;box-shadow:0 12px 32px rgba(20,32,43,.16);padding:6px;z-index:60}'
+   + '.ctn-dd a{display:block;padding:10px 12px;border-radius:8px}.ctn-dd a b{display:block;font-weight:600;font-size:14.5px}.ctn-dd a small{color:#5b6876;font-size:12.5px}.ctn-dd a:hover{background:#f1f4f7}.ctn-dd a.on{background:#e6eef8}.ctn-dd a.on b{color:#1d4f8f}'
+   + '.ctn-rel{position:relative}'
+   + '.ctn-modal{position:fixed;inset:0;background:rgba(20,32,43,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}.ctn-modal[hidden]{display:none}'
+   + '.ctn-card{background:#fff;color:#14202b;border-radius:16px;padding:24px;width:100%;max-width:380px;font:400 15px/1.5 '+F+';box-shadow:0 20px 50px rgba(20,32,43,.25)}'
+   + '.ctn-card h2{margin:0 0 4px;font-size:21px;letter-spacing:-.01em}.ctn-card p{margin:0 0 16px;color:#5b6876;font-size:14px}.ctn-card input{width:100%;font:inherit;padding:11px 12px;border:1.5px solid #dce3ea;border-radius:9px;margin-bottom:10px;background:#fff;color:#14202b}.ctn-card input:focus{outline:2px solid #2f6db5;outline-offset:-1px;border-color:transparent}'
+   + '.ctn-card .go{width:100%;font:600 15px '+F+';padding:12px;border-radius:9px;border:0;background:#1d4f8f;color:#fff;cursor:pointer}.ctn-card .go:disabled{opacity:.6}.ctn-card .sw{background:none;border:0;color:#1d4f8f;font:600 14px '+F+';cursor:pointer;padding:12px 0 0;width:100%}.ctn-card .er{color:#b0342a;font-size:14px;min-height:20px;margin:0 0 8px}.ctn-card .x{float:right;background:none;border:0;font-size:24px;cursor:pointer;color:#5b6876;line-height:1;padding:0}'
+   + '@media (max-width:640px){.ctn-word small{display:none}.ctn-hide{display:none}}@media (max-width:400px){.ctn-word{display:none}}';
   var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
-  var path = location.href.split('#')[0].split('?')[0];
+  var LOGO = '<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="ctn-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6db5"/><stop offset="1" stop-color="#143a6b"/></linearGradient></defs><rect width="40" height="40" rx="10" fill="url(#ctn-g)"/><text x="19.5" y="27.5" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="18" letter-spacing="-.5" fill="#fff">AI</text><circle cx="31.5" cy="9" r="2.6" fill="#8fc1ff"/></svg>';
+  var ARR = function(d){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="'+d+'"/></svg>'; };
+  var path = location.href.split('#')[0].split('?')[0].replace(/index\.html$/,'');
   var h = document.createElement('header'); h.className = 'ctn';
-  h.innerHTML = '<div class="ctn-in"><button class="ctn-b" id="tnb" type="button" aria-label="Back">&#8249;</button><button class="ctn-b" id="tnf" type="button" aria-label="Forward">&#8250;</button>'
-   + '<a class="ctn-brand" href="'+root+'">Clerkship <b>Tools</b></a><span class="ctn-sp"></span>'
-   + '<button class="ctn-m" id="tnm" type="button" aria-expanded="false">Menu &#9662;</button>'+(noauth?'':'<button class="ctn-a" id="tna" type="button">Sign in</button>')+'</div>'
-   + '<nav class="ctn-dd" id="tnd" hidden>'+LINKS.map(function(l){ var on = (l[1]===path || (l[1]!==root && path.indexOf(l[1])===0)) || (l[1]===root && (path===root || path===root+'index.html')); return '<a href="'+l[1]+'"'+(on?' class="on"':'')+'>'+l[0]+'</a>'; }).join('')+'</nav>';
+  h.innerHTML = '<div class="ctn-in"><a class="ctn-logo" href="'+root+'" aria-label="Awesome Ibrahim\'s Clerkship Tools, home">'+LOGO+'<span class="ctn-word"><small><b>A</b>wesome <b>I</b>brahim\'s</small><span>Clerkship Tools</span></span></a><span class="ctn-sp"></span>'
+   + '<button class="ctn-b" id="ctnb" type="button" aria-label="Back">'+ARR('M15 18l-6-6 6-6')+'</button><button class="ctn-b" id="ctnf" type="button" aria-label="Forward">'+ARR('M9 18l6-6-6-6')+'</button>'
+   + '<span class="ctn-rel"><button class="ctn-m" id="ctnm" type="button" aria-expanded="false"><span class="ctn-hide">Menu</span>'+ARR('M4 7h16M4 12h16M4 17h16').replace('<svg','<svg width="18" height="18"')+'</button>'
+   + '<nav class="ctn-dd" id="ctnd" hidden>'+LINKS.map(function(l){ var on = l[1]===root ? (path===root) : path.indexOf(l[1])===0; return '<a href="'+l[1]+'"'+(on?' class="on"':'')+'><b>'+l[0]+'</b><small>'+l[2]+'</small></a>'; }).join('')+'</nav></span>'
+   + (noauth?'':'<button class="ctn-a" id="ctna" type="button">Sign in</button>')+'</div>';
   document.body.insertBefore(h, document.body.firstChild);
-  var dd = h.querySelector('#tnd'), mb = h.querySelector('#tnm');
-  h.querySelector('#tnb').onclick = function(){ history.back(); };
-  h.querySelector('#tnf').onclick = function(){ history.forward(); };
-  mb.onclick = function(){ dd.hidden = !dd.hidden; mb.setAttribute('aria-expanded', String(!dd.hidden)); };
-  document.addEventListener('click', function(e){ if (!h.contains(e.target)) { dd.hidden = true; } });
+  // full width even when the page body has side padding
+  var cs = getComputedStyle(document.body), pl = parseFloat(cs.paddingLeft)||0, pr = parseFloat(cs.paddingRight)||0, pt = parseFloat(cs.paddingTop)||0;
+  if (pl || pr || pt){ h.style.marginLeft = (-pl)+'px'; h.style.marginRight = (-pr)+'px'; h.style.marginTop = (-pt)+'px'; }
+  var dd = h.querySelector('#ctnd'), mb = h.querySelector('#ctnm');
+  h.querySelector('#ctnb').onclick = function(){ history.back(); };
+  h.querySelector('#ctnf').onclick = function(){ history.forward(); };
+  mb.onclick = function(e){ e.stopPropagation(); dd.hidden = !dd.hidden; mb.setAttribute('aria-expanded', String(!dd.hidden)); };
+  document.addEventListener('click', function(e){ if (!dd.contains(e.target)) { dd.hidden = true; mb.setAttribute('aria-expanded','false'); } });
+  document.addEventListener('keydown', function(e){ if (e.key==='Escape') dd.hidden = true; });
   if (noauth) return;
 
   var am = document.createElement('div'); am.className = 'ctn-modal'; am.hidden = true; document.body.appendChild(am);
-  var acct = h.querySelector('#tna'), mode = 'in';
-  function paint(){
-    var u = window.CT && CT.user;
-    acct.textContent = u ? (u.email || 'Account').split('@')[0] : 'Sign in';
-  }
+  var acct = h.querySelector('#ctna'), mode = 'in';
+  function paint(){ var u = window.CT && CT.user; acct.textContent = u ? (u.email || 'Account').split('@')[0] : 'Sign in'; }
   function modal(){
     if (!window.CT || !CT.ready){ am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>Accounts not ready</h2><p>Sign in is not switched on yet. Everything still works as a guest.</p></div>'; am.hidden = false; return; }
-    if (CT.user){
-      am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>Signed in</h2><p>'+(CT.user.email||'')+'</p><button class="go" type="button" data-out>Sign out</button></div>'; am.hidden = false; return;
-    }
-    am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>'+(mode==='in'?'Sign in':'Create account')+'</h2><p>'+(mode==='in'?'Welcome back. Your progress syncs on every device.':'Instant. No email link. Saves your progress and raises your daily limit.')+'</p>'
-      + '<form id="tnform"><input id="tne" type="email" placeholder="Email" autocomplete="email" required><input id="tnp" type="password" placeholder="Password (6+ characters)" minlength="6" autocomplete="'+(mode==='in'?'current-password':'new-password')+'" required><p class="er" id="tner"></p><button class="go" type="submit">'+(mode==='in'?'Sign in':'Create account')+'</button></form>'
-      + '<button class="sw" type="button" data-sw>'+(mode==='in'?'New here? Create an account':'Have an account? Sign in')+'</button></div>';
-    am.hidden = false; var e = am.querySelector('#tne'); if (e) e.focus();
+    if (CT.user){ am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>Your account</h2><p>'+(CT.user.email||'')+'</p><button class="go" type="button" data-out>Sign out</button></div>'; am.hidden = false; return; }
+    am.innerHTML = '<div class="ctn-card"><button class="x" type="button" data-x>&times;</button><h2>'+(mode==='in'?'Sign in':'Create an account')+'</h2><p>'+(mode==='in'?'Your progress follows you to any device.':'Takes a few seconds. Saves your progress and gives you a bigger daily allowance.')+'</p>'
+      + '<form id="ctnform"><input id="ctne" type="email" placeholder="Email" autocomplete="email" required><input id="ctnp" type="password" placeholder="Password (6+ characters)" minlength="6" autocomplete="'+(mode==='in'?'current-password':'new-password')+'" required><p class="er" id="ctner"></p><button class="go" type="submit">'+(mode==='in'?'Sign in':'Create account')+'</button></form>'
+      + '<button class="sw" type="button" data-sw>'+(mode==='in'?'New here? Create an account':'Already have an account? Sign in')+'</button></div>';
+    am.hidden = false; var e = am.querySelector('#ctne'); if (e) e.focus();
   }
   acct.onclick = modal;
   am.addEventListener('click', async function(ev){
@@ -59,13 +71,13 @@
   });
   am.addEventListener('submit', async function(ev){
     ev.preventDefault();
-    var em = am.querySelector('#tne').value.trim(), pw = am.querySelector('#tnp').value, er = am.querySelector('#tner'), b = am.querySelector('.go');
+    var em = am.querySelector('#ctne').value.trim(), pw = am.querySelector('#ctnp').value, er = am.querySelector('#ctner'), b = am.querySelector('.go');
     b.disabled = true; er.textContent = '';
-    var r = mode==='in' ? await CT.signIn(em, pw) : await CT.signUp(em, pw);
+    var r; try { r = mode==='in' ? await CT.signIn(em, pw) : await CT.signUp(em, pw); } catch(x){ r = { error:{ message:'' } }; }
     b.disabled = false;
     if (r.error){
       var m = r.error.message || '';
-      er.textContent = /Invalid login/i.test(m) ? 'Wrong email or password.' : /already/i.test(m) ? 'That email already has an account. Sign in instead.' : /confirm/i.test(m) ? 'Email confirmation is still switched on for this site.' : /password/i.test(m) ? 'Password needs 6 or more characters.' : 'Could not sign in. Try again.';
+      er.textContent = /Invalid login/i.test(m) ? 'Wrong email or password.' : /already/i.test(m) ? 'That email already has an account. Sign in instead.' : /confirm/i.test(m) ? 'This account still needs email confirmation.' : /password/i.test(m) ? 'Password needs 6 or more characters.' : 'Could not sign in. Try again.';
       return;
     }
     am.hidden = true;

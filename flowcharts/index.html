@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>High Yield Flowcharts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../site.css?v=3">
+<style>
+*{box-sizing:border-box}
+body{font-size:15px;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding-bottom:64px}
+.search{width:100%;max-width:440px;font:inherit;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);margin-bottom:18px}
+.search:focus{outline:2px solid var(--accent-2);outline-offset:-1px;border-color:transparent}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.fc{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;color:inherit;text-decoration:none;box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
+.fc:hover{border-color:var(--accent-2);transform:translateY(-2px)}
+.fc .th{display:block;aspect-ratio:1650/1275;background:#f1f4f7;border-bottom:1px solid var(--line)}
+.fc .th img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.fc div.t{padding:12px 14px;display:flex;gap:10px;align-items:baseline}
+.fc .n{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 7px;flex:none}
+.fc b{font-size:14.5px;font-weight:600;line-height:1.35}
+.empty{color:var(--muted)}
+.lb{position:fixed;inset:0;z-index:80;background:rgba(10,18,28,.92);display:flex;flex-direction:column;color:#fff}
+.lb-top{display:flex;align-items:center;gap:10px;padding:10px max(14px,env(safe-area-inset-left,0px));padding-top:max(10px,env(safe-area-inset-top,0px))}
+.lb-top h2{font-size:16px;font-weight:600;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb button{font:600 14px var(--font);color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:9px;height:36px;padding:0 12px;cursor:pointer}
+.lb button:hover{background:rgba(255,255,255,.22)}
+.lb-img{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 12px}
+.lb-img img{max-width:100%;max-height:100%;object-fit:contain;background:#fff;border-radius:6px}
+.lb-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:10px 14px max(14px,env(safe-area-inset-bottom,0px))}
+.lb-chips a{font-size:13px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:99px;padding:5px 11px;text-decoration:none}
+.lb-chips a:hover{background:rgba(255,255,255,.25)}
+.lb-chips span{font-size:13px;color:#b9c7d6;padding:5px 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="pagehead"><h1>High Yield Flowcharts</h1><p>40 approach flowcharts for the peds shelf, built from four review sources. Tap one to open it full size, then jump to the video moments that cover it.</p></header>
+  <input class="search" id="q" type="search" placeholder="Search: jaundice, limp, croup, short stature..." aria-label="Search flowcharts">
+  <div class="grid" id="grid"></div>
+</div>
+<div class="lb" id="lb" hidden></div>
+<script src="https://asimi99.github.io/peds-shelf/data.js?v=3"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../config.js?v=3"></script>
+<script src="../auth.js?v=3"></script>
+<script src="../nav.js?v=3"></script>
+<script>
+var BASE = 'https://asimi99.github.io/peds-shelf/';
+var FCS = window.FC || [], V = {}; (window.VIDS||[]).forEach(function(v){ V[v.key] = v; });
+var LAB = { h1:'Dr High Yield 1', h2:'Dr High Yield 2', e:'Emma Holliday', d:'Divine Intervention' };
+var inApp = false, grid = document.getElementById('grid'), lb = document.getElementById('lb'), q = document.getElementById('q');
+function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+function yt(id,t){ return 'https://www.youtube.com/watch?v='+id+(t?'&t='+Math.floor(t)+'s':''); }
+function list(){
+  var s = q.value.trim().toLowerCase();
+  var a = FCS.filter(function(f){ return !s || f.name.toLowerCase().indexOf(s)>=0; });
+  grid.innerHTML = a.length ? a.map(function(f){ return '<a class="fc" href="#fc-'+f.n+'"><span class="th"><img src="'+BASE+f.img+'" alt="" loading="lazy"></span><div class="t"><span class="n">'+esc(f.n)+'</span><b>'+esc(f.name.replace(/^Approach to (the )?/,'').replace(/^./,function(c){return c.toUpperCase();}))+'</b></div></a>'; }).join('') : '<p class="empty">'+(FCS.length?'No flowchart matches that search.':'Flowcharts could not load. Check your connection and reload.')+'</p>';
+}
+function open(n){
+  var i = FCS.findIndex(function(f){ return f.n===n; }); if (i<0){ lb.hidden = true; return; }
+  var f = FCS[i], prev = FCS[i-1], next = FCS[i+1], chips = '';
+  Object.keys(f.chips||{}).forEach(function(k){ (f.chips[k]||[]).forEach(function(c){ if (V[k]) chips += '<a href="'+yt(V[k].id,c[0])+'">'+esc(LAB[k]||k)+' · '+esc(c[1])+'</a>'; }); });
+  lb.innerHTML = '<div class="lb-top"><button type="button" data-close>Close</button><h2>'+esc(f.n+'. '+f.name)+'</h2>'+(prev?'<button type="button" data-go="'+prev.n+'">Previous</button>':'')+(next?'<button type="button" data-go="'+next.n+'">Next</button>':'')+'</div>'
+    + '<div class="lb-img"><img src="'+BASE+f.img+'" alt="Flowchart: '+esc(f.name)+'"></div>'
+    + (chips?'<div class="lb-chips"><span>Watch:</span>'+chips+'</div>':'');
+  lb.hidden = false; document.body.style.overflow = 'hidden';
+}
+function route(){ var m = location.hash.match(/^#fc-(\d+)$/); if (m) open(m[1]); else { lb.hidden = true; document.body.style.overflow = ''; } }
+lb.addEventListener('click', function(e){
+  var g = e.target.closest('[data-go]'); if (g){ location.replace('#fc-'+g.dataset.go); return; }
+  if (e.target.closest('[data-close]') || e.target===lb){ closeLb(); }
+});
+document.addEventListener('keydown', function(e){
+  if (lb.hidden) return;
+  if (e.key==='Escape') closeLb();
+  var b = lb.querySelectorAll('[data-go]');
+  if (e.key==='ArrowRight' || e.key==='ArrowLeft'){ var i = FCS.findIndex(function(f){ return '#fc-'+f.n===location.hash; }); var t = FCS[i + (e.key==='ArrowRight'?1:-1)]; if (t) location.replace('#fc-'+t.n); }
+});
+function closeLb(){ if (inApp){ inApp=false; history.back(); } else { location.replace('#'); route(); } }
+grid.addEventListener('click', function(e){ if (e.target.closest('.fc')) inApp = true; });
+q.addEventListener('input', list);
+addEventListener('hashchange', route);
+list(); route();
+</script>
+</body>
+</html>

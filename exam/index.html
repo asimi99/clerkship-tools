@@ -40,18 +40,17 @@ select,input[type=number]{font:inherit;padding:6px 8px;border:1.5px solid var(--
 .err{color:var(--bad);margin-top:8px}
 .prog{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;background:var(--accent)}
 </style>
-<link rel="stylesheet" href="../site.css">
+<link rel="stylesheet" href="../site.css?v=3">
 </head>
 <body>
 <div class="wrap">
-  <h1>Practice Exams</h1>
-  <p class="muted" style="margin:0 0 10px">Upload PDFs of questions and answers. The site turns them into an NBME-style online test with a timer, flagging and a question navigator. After the test you get your score and a full explanation for every question.</p>
+  <header class="pagehead"><h1>Practice Exams</h1><p>Upload PDFs of questions and answers. The site turns them into an NBME-style online test with a timer, flagging and a question navigator. After the test you get your score and a full explanation for every question.</p></header>
   <div id="app"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="../config.js"></script>
-<script src="../auth.js"></script>
-<script src="../nav.js"></script>
+<script src="../config.js?v=3"></script>
+<script src="../auth.js?v=3"></script>
+<script src="../nav.js?v=3"></script>
 <script>
 var app = document.getElementById('app');
 var LS = 'ct_exam_sets', LH = 'ct_exam_hist';
