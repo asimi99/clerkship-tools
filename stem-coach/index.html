@@ -159,7 +159,7 @@ var stage = document.getElementById('stage'), tabsEl = document.getElementById('
 
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
 function fresh(){ return { i:0, sel:{}, other:{}, otherOpen:{}, solved:false, otherFb:{}, otherBusy:{} }; }
-var LABEL = { good:'On track', warn:'Partly', bad:'Not quite', note:'Noted' };
+var LABEL = { good:'Correct', warn:'Partly', bad:'Not quite', note:'Noted' };
 function fbHtml(cls, text, lab){ return '<div class="fb '+cls+'"><b>'+esc(lab||LABEL[cls])+'</b>'+text+'</div>'; }
 
 var RULES = [
@@ -169,13 +169,13 @@ var RULES = [
 'LINE 1: {"kind":"meta","title":"short tab label such as 9 years, recurrent vomiting","stemSummary":"plain summary of the stem with every key finding and lab, under 150 words","options":["A. ...","B. ..."],"optionsFromImage":true,"stepCount":7}',
 'LINES 2 to 5 or 6, the reasoning steps: {"kind":"step","type":"single","q":"question","sub":"one short hint","opts":[{"t":"option","v":"good","fb":"feedback"},{"t":"option","v":"warn","fb":"feedback"},{"t":"option","v":"bad","fb":"feedback"}]}',
 'NEXT, one elimination step: {"kind":"step","type":"elim","opts":[{"t":"A. answer choice text","v":"good","fb":"Yes, eliminate it. reason"},{"t":"B. answer choice text","v":"warn","fb":"Keep it in play. reason"}]} with ONE entry for EVERY answer choice. v is good for the choices a careful reader can rule out from the stem alone, and warn for the ones that stay in play.',
-'NEXT, the final step: {"kind":"step","type":"final","q":"the question as asked","opts":[{"t":"A. answer choice text","v":"bad","fb":"why it is wrong, pointing to the stem"},{"t":"C. answer choice text","v":"good","fb":""}]} with ONE entry for EVERY answer choice, exactly one good, the good one has an empty fb.',
+'NEXT, the final step: {"kind":"step","type":"final","q":"the question as asked","opts":[{"t":"A. answer choice text","v":"bad","fb":"why it is wrong, pointing to the stem"},{"t":"C. answer choice text","v":"good","fb":"why it is right, naming the stem clues that clinch it"}]} with ONE entry for EVERY answer choice, exactly one good.',
 'LAST LINE: {"kind":"reveal","headline":"the answer and the diagnosis in one sentence","why":["3 to 5 bullets on why it fits"],"do":["2 to 4 bullets on what you do and what to watch for"],"table":{"cols":["","Typical picture","Next step"],"rows":[["Name of this condition","clue","step"],["Look-alike","clue","step"]],"me":0}} where me is the row index of the actual answer and the table has 3 to 5 look-alike rows.',
 'STEP RULES:',
 '1. 6 or 7 steps in total counting the elimination and final steps. Fixed order: how sick or how urgent, where the problem is, the mechanism, the finding that discriminates, how much weight a planted distractor deserves, eliminate, commit.',
 '2. Every step is a decision the student makes from the stem, never recall trivia. Do not name the diagnosis, the disease or the answer in any step question or any feedback before the final step.',
 '3. Single steps have exactly 3 options, one good and two plausible wrong ones (bad or warn). Vary where the good option sits. Do not let the longest option be the right one.',
-'4. Feedback is 1 or 2 self-contained sentences that point back to a specific line of the stem. For a wrong option say what the stem shows instead.',
+'4. Feedback is 1 or 2 self-contained sentences that point back to a specific line of the stem. For a wrong option say what the stem shows instead. For a right option, teach: say exactly which clue makes it right and what that clue rules out or sets up next. Never give generic praise such as "on track", "good job" or "correct" on its own, and never leave fb empty.',
 '5. If the answer choices are not visible, write your own 5 choices, say so by setting optionsFromImage to false, and keep going.',
 '6. Answer the way the exam expects. If Canadian practice differs from the exam answer, add one bullet to "do" saying so. Put [Likely] after any number you are not sure of.',
 '7. Use Canadian spelling. Never use em dashes or semicolons anywhere. Plain, direct sentences.',
@@ -302,7 +302,7 @@ function otherBlock(c, i){
 }
 
 function revealHTML(r){
-  var h = '<div class="reveal"><div class="fb good"><b>On track</b>'+esc(r.headline)+'</div>';
+  var h = '<div class="reveal"><div class="fb good"><b>The answer</b>'+esc(r.headline)+'</div>';
   if (r.why && r.why.length) h += '<div><h3>Why it fits</h3><ul>'+r.why.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
   if (r.do && r.do.length) h += '<div><h3>What you do</h3><ul>'+r.do.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
   if (r.table && r.table.rows && r.table.rows.length){
