@@ -180,6 +180,7 @@ var RULES = [
 '4. Feedback is 1 or 2 self-contained sentences that point back to a specific line of the stem. For a wrong option say what the stem shows instead. For a right option, teach: say exactly which clue makes it right and what that clue rules out or sets up next. Never give generic praise such as "on track", "good job" or "correct" on its own, and never leave fb empty.',
 '5. If the answer choices are not visible, write your own 5 choices, say so by setting optionsFromImage to false, and keep going.',
 '6. Answer the way the exam expects. If Canadian practice differs from the exam answer, add one bullet to "do" saying so. Put [Likely] after any number you are not sure of.',
+'6b. "t" is always the full wording of the option a student reads. Never put a verdict word such as good, bad or warn in "t", that belongs only in "v".',
 '7. Use Canadian spelling. Never use em dashes or semicolons anywhere. Plain, direct sentences.',
 '8. If you cannot read a question in the input, output only: {"kind":"error","message":"what is missing"}'
 ].join('\n');
@@ -208,6 +209,9 @@ function proc(c, line){
   var o; try { o = JSON.parse(line); } catch(e){ return; }
   if (o.kind==='meta'){ c.meta=o; if (o.title) c.title=String(o.title).slice(0,60); }
   else if (o.kind==='step' && o.opts && o.opts.length){
+    o.opts = o.opts.filter(function(x){ var t = x && typeof x.t==='string' ? x.t.trim() : ''; return t.length > 3 && !/^(good|bad|warn|option|correct|incorrect|right|wrong)\.?$/i.test(t); });
+    o.opts.forEach(function(x){ if (x.v!=='good' && x.v!=='warn' && x.v!=='bad') x.v = 'bad'; if (!x.fb) x.fb = ''; });
+    if (o.opts.length < 2 || (o.type==='final' && !o.opts.some(function(x){ return x.v==='good'; }))) { progress(c); return; }
     if (o.type==='elim'){
       o.q = 'Which answer choice can you eliminate first?';
       o.sub = 'Pick the one you are most sure the stem rules out.';
