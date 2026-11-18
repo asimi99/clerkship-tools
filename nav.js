@@ -9,9 +9,9 @@
     ['Video Notes', root + 'video-notes/', 'Any YouTube video into timestamps and a flowchart']
   ];
   var SHELF = [
-    ['OB/GYN', [['OB/GYN Video Desk', root + 'obgyn/', 'Videos by topic and system, 27 flowcharts, PDFs']]],
+    ['OB/GYN', [['OB/GYN Flowcharts', root + 'obgyn/flowcharts/', '27 approach flowcharts, full size'], ['OB/GYN Video Desk', root + 'obgyn/', 'Videos by topic and system, 27 flowcharts, PDFs']]],
     ['Pediatrics', [['Peds Flowcharts', root + 'flowcharts/', '40 approach flowcharts, full size'], ['Peds Videos', 'https://asimi99.github.io/peds-shelf/', 'Review videos split by topic and system']]],
-    ['Internal Medicine', [['IM Video Desk', root + 'im/', 'Videos by topic and system, 35 flowcharts, PDFs']]], ['Family Medicine', [['FM Video Desk', root + 'fm/', 'Videos by topic and system, 23 flowcharts, PDFs']]], ['Psychiatry', [['Psych Video Desk', root + 'psych/', 'Videos by topic and system, 21 flowcharts, PDFs']]], ['Surgery', [['Surgery Video Desk', root + 'surg/', 'Videos by topic and system, 28 flowcharts, PDFs']]]
+    ['Internal Medicine', [['IM Flowcharts', root + 'im/flowcharts/', '35 approach flowcharts, full size'], ['IM Video Desk', root + 'im/', 'Videos by topic and system, 35 flowcharts, PDFs']]], ['Family Medicine', [['FM Flowcharts', root + 'fm/flowcharts/', '23 approach flowcharts, full size'], ['FM Video Desk', root + 'fm/', 'Videos by topic and system, 23 flowcharts, PDFs']]], ['Psychiatry', [['Psych Flowcharts', root + 'psych/flowcharts/', '21 approach flowcharts, full size'], ['Psych Video Desk', root + 'psych/', 'Videos by topic and system, 21 flowcharts, PDFs']]], ['Surgery', [['Surgery Flowcharts', root + 'surg/flowcharts/', '28 approach flowcharts, full size'], ['Surgery Video Desk', root + 'surg/', 'Videos by topic and system, 28 flowcharts, PDFs']]]
   ];
   function isOn(href){ return href===root ? (path===root) : (path.indexOf(href)===0 || location.href.indexOf(href)===0); }
   function lk(l){ return '<a href="'+l[1]+'"'+(isOn(l[1])?' class="on"':'')+'><b>'+l[0]+'</b><small>'+l[2]+'</small></a>'; }
