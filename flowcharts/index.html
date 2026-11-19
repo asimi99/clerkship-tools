@@ -9,80 +9,125 @@
 <style>
 *{box-sizing:border-box}
 body{font-size:15px;line-height:1.55}
-.wrap{margin:0;padding:24px max(clamp(16px,3vw,40px),env(safe-area-inset-right,0px)) 56px max(clamp(16px,3vw,40px),env(safe-area-inset-left,0px))}
-.search{width:100%;max-width:440px;font:inherit;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);margin-bottom:18px}
+.wrap{margin:0;padding:24px max(clamp(16px,3vw,40px),env(safe-area-inset-right,0px)) 56px max(clamp(16px,3vw,40px),env(safe-area-inset-left,0px));max-width:1400px}
+a{color:var(--accent)}
+.search{width:100%;max-width:520px;font:inherit;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
 .search:focus{outline:2px solid var(--accent-2);outline-offset:-1px;border-color:transparent}
-.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
-.fc{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;color:inherit;text-decoration:none;box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
-.fc:hover{border-color:var(--accent-2);transform:translateY(-2px)}
-.fc .th{display:block;aspect-ratio:1650/1275;background:#f1f4f7;border-bottom:1px solid var(--line)}
-.fc .th img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
-.fc div.t{padding:12px 14px;display:flex;gap:10px;align-items:baseline}
-.fc .n{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 7px;flex:none}
-.fc b{font-size:14.5px;font-weight:600;line-height:1.35}
+.subj{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 22px}
+.subj button{font:600 13.5px var(--font);border:1.5px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:6px 12px;cursor:pointer}
+.subj button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
+.sec{margin:0 0 26px}
+.sec h2{font-size:19px;margin:0 0 10px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.tile{display:grid;gap:4px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:inherit;text-decoration:none;box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
+.tile:hover{border-color:var(--accent-2);transform:translateY(-2px)}
+.tile .m{font-size:12.5px;color:var(--muted)}
+.tile b{font-size:16px;line-height:1.3}
+.tile .q{font-size:13.5px;color:var(--muted)}
+.hits{display:grid;gap:8px}
+.hit{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;color:inherit;text-decoration:none}
+.hit:hover{border-color:var(--accent-2)}
+.hit .c{font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:3px 8px;white-space:nowrap}
+.hit .t{font-weight:600}.hit .s{font-size:13.5px;color:var(--muted)}
 .empty{color:var(--muted)}
-.lb{position:fixed;inset:0;z-index:80;background:rgba(10,18,28,.92);display:flex;flex-direction:column;color:#fff}
-.lb-top{display:flex;align-items:center;gap:10px;padding:10px max(14px,env(safe-area-inset-left,0px));padding-top:max(10px,env(safe-area-inset-top,0px))}
-.lb-top h2{font-size:16px;font-weight:600;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lb button{font:600 14px var(--font);color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:9px;height:36px;padding:0 12px;cursor:pointer}
-.lb button:hover{background:rgba(255,255,255,.22)}
-.lb-img{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 12px}
-.lb-img img{max-width:100%;max-height:100%;object-fit:contain;background:#fff;border-radius:6px}
-.lb-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:10px 14px max(14px,env(safe-area-inset-bottom,0px))}
-.lb-chips a{font-size:13px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:99px;padding:5px 11px;text-decoration:none}
-.lb-chips a:hover{background:rgba(255,255,255,.25)}
-.lb-chips span{font-size:13px;color:#b9c7d6;padding:5px 4px}
+b.hy{color:#c4231c;font-weight:700}
+mark{background:#fff2a8;color:inherit;border-radius:2px}
+.crumb{font-size:13px;color:var(--muted);margin:0 0 6px}.crumb a{text-decoration:none}
+.sheet h1{font-size:28px;letter-spacing:-.02em;margin:0 0 18px}
+.fc{display:grid;min-width:0}
+.fc-root{justify-self:center;max-width:640px;text-align:center;font-weight:700;font-size:16px;padding:10px 16px;border:2px solid var(--fg);border-radius:10px;background:var(--surface);position:relative;margin-bottom:22px}
+.fc-root::after{content:"";position:absolute;left:50%;top:100%;height:22px;border-left:2px solid var(--line)}
+.fc-br{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;align-items:start;border-top:2px solid var(--line);padding-top:14px}
+.fc-br.one{border-top:0;padding-top:0}
+.fc-col{display:grid;gap:8px;min-width:0}
+.fc-cat{border-radius:10px;padding:10px 12px;border:1.5px solid var(--tc);background:var(--ts)}
+.fc-cat h3{font-size:15.5px;color:var(--tc);margin:0}
+.fc-cat p{margin:4px 0 0;font-size:13.5px;line-height:1.45}
+.fc-card{position:relative;border:1px solid var(--line);border-left:4px solid var(--tc);border-radius:8px;background:var(--surface);padding:9px 11px;display:grid;gap:4px;margin-left:10px}
+.fc-card::before{content:"";position:absolute;left:-12px;top:16px;width:8px;border-top:2px solid var(--line)}
+.fc-card .nm{font-weight:700;font-size:15px}
+.fc-card .ex{font-size:13.5px;color:var(--muted)}
+.fc-card .uw{font-size:13.5px;line-height:1.45;background:var(--bg);border-radius:6px;padding:6px 8px}
+.fc-card .uw span{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tc);margin-right:6px}
+.t-a{--tc:#1d4f8f;--ts:#e6eef8}.t-b{--tc:#b3261e;--ts:#fbe9e7}.t-c{--tc:#9a5b00;--ts:#fbefdc}.t-d{--tc:#2e7d32;--ts:#e7f4e8}.t-e{--tc:#6a3ea1;--ts:#f1eafa}
+.cmpw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:22px}
+.cmp{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px;line-height:1.45}
+.cmp th,.cmp td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+.cmp thead th{font-size:14.5px;color:var(--tc);background:var(--ts);border-bottom:2px solid var(--tc)}
+.cmp tbody th{font-size:13px;width:140px;background:var(--bg)}
+.cmp tr:last-child td,.cmp tr:last-child th{border-bottom:0}
+.fc-keys{display:grid;border-top:1px solid var(--line);margin-top:18px}
+.fc-keys div{display:grid;grid-template-columns:180px minmax(0,1fr);gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:22px;font-size:14px}.pager a{text-decoration:none}
+@media (max-width:520px){.fc-keys div{grid-template-columns:minmax(0,1fr);gap:2px}.hit{grid-template-columns:minmax(0,1fr);gap:4px}.hit .c{justify-self:start}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="pagehead"><h1>Peds Flowcharts</h1><p>40 approach flowcharts for the peds shelf, built from four review sources. Tap one to open it full size, then jump to the video moments that cover it.</p></header>
-  <input class="search" id="q" type="search" placeholder="Search: jaundice, limp, croup, short stature..." aria-label="Search flowcharts">
-  <div class="grid" id="grid"></div>
-</div>
-<div class="lb" id="lb" hidden></div>
-<script src="https://asimi99.github.io/peds-shelf/data.js?v=3"></script>
+<div class="wrap" id="app"></div>
+<script src="https://asimi99.github.io/peds-shelf/cs.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="../config.js?v=3"></script>
 <script src="../auth.js?v=3"></script>
 <script src="../nav.js?v=21"></script>
 <script>
-var BASE = 'https://asimi99.github.io/peds-shelf/';
-var FCS = window.FC || [], V = {}; (window.VIDS||[]).forEach(function(v){ V[v.key] = v; });
-var LAB = { h1:'Dr High Yield 1', h2:'Dr High Yield 2', e:'Emma Holliday', d:'Divine Intervention' };
-var inApp = false, grid = document.getElementById('grid'), lb = document.getElementById('lb'), q = document.getElementById('q');
+var CS = window.CS || [], app = document.getElementById('app'), cur = 'all', qv = '';
 function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
-function yt(id,t){ return 'https://www.youtube.com/watch?v='+id+(t?'&t='+Math.floor(t)+'s':''); }
-function list(){
-  var s = q.value.trim().toLowerCase();
-  var a = FCS.filter(function(f){ return !s || f.name.toLowerCase().indexOf(s)>=0; });
-  grid.innerHTML = a.length ? a.map(function(f){ return '<a class="fc" href="#fc-'+f.n+'"><span class="th"><img src="'+BASE+f.img+'" alt="" loading="lazy"></span><div class="t"><span class="n">'+esc(f.n)+'</span><b>'+esc(f.name.replace(/^Approach to (the )?/,'').replace(/^./,function(c){return c.toUpperCase();}))+'</b></div></a>'; }).join('') : '<p class="empty">'+(FCS.length?'No flowchart matches that search.':'Flowcharts could not load. Check your connection and reload.')+'</p>';
+function rich(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<b class="hy">$1</b>'); }
+function plain(s){ return String(s||'').toLowerCase().replace(/\*/g,''); }
+function count(h){ return h.g.reduce(function(a,g){ return a+g.x.length; },0); }
+function tile(x,h){ return '<a class="tile" href="#'+x.id+'-'+h.id+'"><span class="m">'+esc(x.name)+' · '+count(h)+' conditions</span><b>'+esc(h.t)+'</b>'+(h.q?'<span class="q">'+esc(h.q)+'</span>':'')+'</a>'; }
+function hl(s,terms){ var h=rich(s); terms.forEach(function(t){ h=h.replace(new RegExp('('+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')(?![^<]*>)','gi'),'<mark>$1</mark>'); }); return h; }
+
+function home(){
+  app.innerHTML = '<header class="pagehead"><h1>Peds Flowcharts</h1><p>Comparative cheat sheets for the peds shelf, by subject. Each condition shows what sets it apart and how the kid looks in a UWorld stem. Red bold is the buzz phrase.</p></header>'
+    + '<input class="search" id="q" type="search" placeholder="Search: cardiology, cyanotic, croup, jaundice, limp..." aria-label="Search cheat sheets" value="'+esc(qv)+'">'
+    + '<div class="subj" id="subj"><button type="button" data-s="all" class="'+(cur==='all'?'on':'')+'">All subjects</button>'+CS.map(function(x){ return '<button type="button" data-s="'+x.id+'" class="'+(cur===x.id?'on':'')+'">'+esc(x.name)+'</button>'; }).join('')+'</div>'
+    + '<div id="res"></div>';
+  var q = document.getElementById('q');
+  q.addEventListener('input', function(){ qv = q.value; results(); });
+  document.getElementById('subj').addEventListener('click', function(e){ var b=e.target.closest('[data-s]'); if(!b) return; cur=b.dataset.s; document.querySelectorAll('#subj button').forEach(function(x){ x.classList.toggle('on', x===b); }); results(); });
+  results();
 }
-function open(n){
-  var i = FCS.findIndex(function(f){ return f.n===n; }); if (i<0){ lb.hidden = true; return; }
-  var f = FCS[i], prev = FCS[i-1], next = FCS[i+1], chips = '';
-  Object.keys(f.chips||{}).forEach(function(k){ (f.chips[k]||[]).forEach(function(c){ if (V[k]) chips += '<a href="'+yt(V[k].id,c[0])+'">'+esc(LAB[k]||k)+' · '+esc(c[1])+'</a>'; }); });
-  lb.innerHTML = '<div class="lb-top"><button type="button" data-close>Close</button><h2>'+esc(f.n+'. '+f.name)+'</h2>'+(prev?'<button type="button" data-go="'+prev.n+'">Previous</button>':'')+(next?'<button type="button" data-go="'+next.n+'">Next</button>':'')+'</div>'
-    + '<div class="lb-img"><img src="'+BASE+f.img+'" alt="Flowchart: '+esc(f.name)+'"></div>'
-    + (chips?'<div class="lb-chips"><span>Watch:</span>'+chips+'</div>':'');
-  lb.hidden = false; document.body.style.overflow = 'hidden';
+function results(){
+  var res = document.getElementById('res'), terms = plain(qv).split(/\s+/).filter(Boolean);
+  var subs = CS.filter(function(x){ return cur==='all' || x.id===cur; });
+  if (!CS.length){ res.innerHTML = '<p class="empty">Flowcharts could not load. Check your connection and reload.</p>'; return; }
+  if (!terms.length){
+    res.innerHTML = subs.map(function(x){ return '<section class="sec"><h2>'+esc(x.name)+'</h2><div class="grid">'+x.sheets.map(function(h){ return tile(x,h); }).join('')+'</div></section>'; }).join('');
+    return;
+  }
+  var sheets = [], cards = [];
+  subs.forEach(function(x){ x.sheets.forEach(function(h){
+    var base = plain(x.name+' '+(x.al||'')+' '+h.t+' '+(h.q||''));
+    var all = base+' '+plain(h.g.map(function(g){ return g.h+' '+g.r+' '+g.x.map(function(c){ return c.join(' '); }).join(' '); }).join(' ')+' '+(h.cmp?h.cmp.r.map(function(r){ return r.join(' '); }).join(' '):''));
+    if (terms.every(function(t){ return all.indexOf(t)>=0; })) sheets.push(tile(x,h));
+    h.g.forEach(function(g){ g.x.forEach(function(c){
+      var txt = base+' '+plain(g.h+' '+c.join(' '));
+      if (terms.every(function(t){ return txt.indexOf(t)>=0; })) cards.push('<a class="hit" href="#'+x.id+'-'+h.id+'"><span class="c">'+esc(h.t)+'</span><div><div class="t">'+hl(c[0],terms)+'</div><div class="s">'+hl(c[2]||c[1],terms)+'</div></div></a>');
+    }); });
+  }); });
+  res.innerHTML = (sheets.length?'<section class="sec"><p class="eyebrow">'+sheets.length+' cheat sheet'+(sheets.length===1?'':'s')+'</p><div class="grid">'+sheets.join('')+'</div></section>':'')
+    + (cards.length?'<section class="sec"><p class="eyebrow">'+cards.length+' condition'+(cards.length===1?'':'s')+'</p><div class="hits">'+cards.join('')+'</div></section>':'')
+    || '<p class="empty">Nothing matched. Try one word, like "heart", "stridor" or "jaundice".</p>';
 }
-function route(){ var m = location.hash.match(/^#fc-(\d+)$/); if (m) open(m[1]); else { lb.hidden = true; document.body.style.overflow = ''; } }
-lb.addEventListener('click', function(e){
-  var g = e.target.closest('[data-go]'); if (g){ location.replace('#fc-'+g.dataset.go); return; }
-  if (e.target.closest('[data-close]') || e.target===lb){ closeLb(); }
-});
-document.addEventListener('keydown', function(e){
-  if (lb.hidden) return;
-  if (e.key==='Escape') closeLb();
-  var b = lb.querySelectorAll('[data-go]');
-  if (e.key==='ArrowRight' || e.key==='ArrowLeft'){ var i = FCS.findIndex(function(f){ return '#fc-'+f.n===location.hash; }); var t = FCS[i + (e.key==='ArrowRight'?1:-1)]; if (t) location.replace('#fc-'+t.n); }
-});
-function closeLb(){ if (inApp){ inApp=false; history.back(); } else { location.replace('#'); route(); } }
-grid.addEventListener('click', function(e){ if (e.target.closest('.fc')) inApp = true; });
-q.addEventListener('input', list);
+function sheet(x,h){
+  var j = x.sheets.indexOf(h), prev = x.sheets[j-1], next = x.sheets[j+1];
+  function card(c){ return '<div class="fc-card"><div class="nm">'+rich(c[0])+'</div>'+(c[1]?'<div class="ex">'+rich(c[1])+'</div>':'')+(c[2]?'<div class="uw"><span>UWorld</span>'+rich(c[2])+'</div>':'')+'</div>'; }
+  function col(g){ return '<div class="fc-col t-'+(g.c||'a')+'">'+(g.h||g.r?'<div class="fc-cat">'+(g.h?'<h3>'+esc(g.h)+'</h3>':'')+(g.r?'<p>'+rich(g.r)+'</p>':'')+'</div>':'')+g.x.map(card).join('')+'</div>'; }
+  var cmp = h.cmp ? '<div class="cmpw"><table class="cmp"><thead><tr><th></th>'+h.cmp.h.map(function(c,i){ return '<th class="t-'+h.cmp.t[i]+'">'+esc(c)+'</th>'; }).join('')+'</tr></thead><tbody>'+h.cmp.r.map(function(r){ return '<tr><th>'+esc(r[0])+'</th>'+r.slice(1).map(function(c){ return '<td>'+rich(c)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>' : '';
+  app.innerHTML = '<div class="sheet"><p class="crumb"><a href="#">Peds Flowcharts</a> · '+esc(x.name)+'</p><h1>'+esc(h.t)+'</h1>'
+    + '<div class="fc">'+(h.q?'<div class="fc-root">'+rich(h.q)+'</div>':'')+cmp+'<div class="fc-br'+(h.q&&h.g.length>1?'':' one')+'">'+h.g.map(col).join('')+'</div>'
+    + (h.k&&h.k.length?'<div class="fc-keys">'+h.k.map(function(k){ return '<div><b>'+esc(k[0])+'</b><span>'+rich(k[1])+'</span></div>'; }).join('')+'</div>':'')+'</div>'
+    + '<nav class="pager">'+(prev?'<a href="#'+x.id+'-'+prev.id+'">← '+esc(prev.t)+'</a>':'<span></span>')+(next?'<a href="#'+x.id+'-'+next.id+'">'+esc(next.t)+' →</a>':'<span></span>')+'</nav></div>';
+}
+function route(){
+  var m = location.hash.match(/^#([a-z]+)-([a-z]+)$/), x, h;
+  if (m && (x = CS.find(function(s){ return s.id===m[1]; })) && (h = x.sheets.find(function(s){ return s.id===m[2]; }))) { sheet(x,h); scrollTo(0,0); }
+  else home();
+}
 addEventListener('hashchange', route);
-list(); route();
+route();
 </script>
 </body>
 </html>
