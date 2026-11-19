@@ -94,6 +94,8 @@ textarea{
 .opt.r-bad{border-color:var(--bad); background:var(--bad-soft)}
 .opt.r-warn{border-color:var(--warn); background:var(--warn-soft)}
 .opt span.t{min-width:0; overflow-wrap:anywhere; flex:1}
+.othl{justify-self:start; align-self:flex-start; font:inherit; font-size:13px; color:var(--muted); background:none; border:0; padding:2px 2px; cursor:pointer; opacity:.75; text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:3px}
+.othl:hover,.othl.on{opacity:1; color:var(--fg)}
 .opt .x{flex:none; margin:-4px -6px -4px 4px; padding:4px 8px; border-radius:6px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:line-through; cursor:pointer; line-height:1.2}
 .opt .x:hover{background:var(--line); color:var(--fg)}
 .opt.crossed span.t{text-decoration:line-through; color:var(--muted)}
@@ -342,7 +344,7 @@ function stemHTML(c){
 
 function otherBlock(c, i){
   var st=c.st, open=st.otherOpen[i];
-  var h = '<button type="button" class="opt'+(open?' sel':'')+'" data-act="other"><span class="k"></span><span class="t">Other: explain it in your own words</span></button>';
+  var h = '<button type="button" class="othl'+(open?' on':'')+'" data-act="other">'+(open?'Hide my own reasoning':'Other: explain it in your own words')+'</button>';
   if (open){
     h += '<textarea id="otherTxt" placeholder="Write your reasoning here">'+esc((st.other[i]&&st.other[i].text)||'')+'</textarea>'
       +  '<div class="row"><button type="button" class="btn ghost" data-act="saveother"'+(st.otherBusy[i]?' disabled':'')+'>'+(st.otherBusy[i]?'Checking':'Check my reasoning')+'</button></div>';
