@@ -142,6 +142,7 @@ async function sample(input, o){
         headers:{ 'Content-Type':'application/json', 'apikey':CFG.SUPABASE_ANON_KEY, 'Authorization':'Bearer '+(tok || CFG.SUPABASE_ANON_KEY) }, body:payload });
     } catch(e){
       if (e && e.name==='AbortError') throw { code:'cancelled', message:'cancelled' };
+      if (fnIx===0){ fnIx = 1; lsSet('sr_fn', Date.now()); continue; }
       throw { code:'upstream_error', message:String(e) };
     }
     if (res.status===404 && fnIx===0){ fnIx = 1; lsSet('sr_fn', Date.now()); continue; }
