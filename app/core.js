@@ -302,9 +302,9 @@ async function pageAttending(c, i, msg){
   var picked = st.sel[i]!==undefined ? s.opts[st.sel[i]] : null;
   var rules = 'You are the attending physician on a teaching service. A medical student working through an exam question one step at a time is stuck on a step and has paged you. Reply like a short page back: 2 to 4 plain sentences, warm and direct, no greeting, no markdown, no lists.\n'
     + 'NEVER name the diagnosis, the correct answer choice, or which option of this step is right. The student must still make the decision.\n'
-    + (level===0 ? 'This is the first page on this step: point to the exact finding in the stem to look at again and ask one guiding question.'
-      : level===1 ? 'This is the second page on this step: explain the concept this step is testing in plain language, then say what one of the wrong options would look like instead.'
-      : 'The student has paged several times: teach the concept directly and rule out one wrong option of this step with the stem clue that kills it. Still do not say which option is right.') + '\n'
+    + 'Answer the exact question the student asked, first and directly. Use the stem to do it. '
+    + (level===0 ? 'Then, if it helps, point to the one stem finding worth a second look.'
+      : 'The student has paged before on this step, so be more explicit: explain the concept behind this step plainly and, if needed, say why one wrong option does not fit. Still do not say which option is right.') + '\n'
     + SPELL[REGION] + ' No em dashes or semicolons.\n\n' + ctxText(c)
     + '\nCurrent step asks: ' + s.q + '\nOptions on this step: ' + s.opts.map(function(o){ return o.t; }).join(' | ')
     + (picked ? '\nThe student last picked: ' + picked.t + ' (' + (picked.v==='good' ? 'which is right' : 'which is not right') + ')' : '\nThe student has not picked yet.');

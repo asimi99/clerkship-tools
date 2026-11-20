@@ -34,13 +34,13 @@ function renderTop(){
     + '</nav>';
 }
 window.onPlan = function(){ renderTop(); if (view==='account') renderStage(); };
-function tabLabel(c){ var id = c.qid && !/^h/.test(c.qid) ? c.qid : ''; if (c.num) return 'Q' + c.num + (id ? ' - ' + id : ''); if (id) return 'QID ' + id; return c.title || (c.queued ? 'Queued' : 'Reading'); }
+function tabLabel(c){ var id = c.qid && !/^h/.test(c.qid) ? esc(c.qid) : ''; if (c.num) return 'Q' + esc(c.num) + (id ? '<em> - QID' + id + '</em>' : ''); if (id) return '<em>QID' + id + '</em>'; return esc(c.title || (c.queued ? 'Queued' : 'Reading')); }
 function renderTabs(){
   if (view!=='coach' || !cases.length){ tabsEl.innerHTML = ''; tabsEl.hidden = true; return; }
   tabsEl.hidden = false;
   tabsEl.innerHTML = cases.map(function(c,k){
     var state = c.st.solved ? 'done' : (c.generating || c.queued ? 'busy' : '');
-    return '<button type="button" class="tab '+state+'" role="tab" aria-selected="'+(k===cur)+'" data-case="'+k+'"><i></i><span>'+esc(tabLabel(c))+'</span></button>';
+    return '<button type="button" class="tab '+state+'" role="tab" aria-selected="'+(k===cur)+'" data-case="'+k+'"><i></i><span>'+tabLabel(c)+'</span></button>';
   }).join('');
   var a = tabsEl.querySelector('[aria-selected="true"]'); if (a && a.scrollIntoView) a.scrollIntoView({ block:'nearest', inline:'nearest' });
 }
@@ -109,13 +109,10 @@ function pageHTML(c, i){
   var st = c.st, th = (st.pages && st.pages[i]) || [], open = st.pageOpen && st.pageOpen[i];
   if (!open) return '<button type="button" class="pagebtn" data-act="pageopen">'+IC.pager+'<span><b>Still stuck?</b> Page the attending</span></button>';
   var h = '<div class="pagebox"><div class="pagehd">'+IC.pager+'<b>Attending</b><span>on call</span><span class="spacer"></span><button type="button" class="lnk" data-act="pageopen">Hide</button></div>';
-  if (!th.length && !c.pageBusy) h += '<p class="muted sm">Page the attending for a nudge on this step. You still make the call.</p>';
   th.forEach(function(m){ h += '<div class="pg '+(m.role==='user'?'me':'att')+'">'+(m.role==='user'?'':'<i>Attending</i>')+'<span>'+esc(m.content)+'</span></div>'; });
   h += '<div class="pg att" id="pageLive"'+(c.pageBusy?'':' hidden')+'><i>Attending</i><span>'+esc(c.pageLive||'')+'</span></div>';
   if (c.pageBusy && !c.pageLive) h += waitHTML('Paging');
-  var n = th.filter(function(m){ return m.role==='assistant'; }).length;
-  h += '<div class="chips"><button type="button" data-act="pagequick"'+(c.pageBusy?' disabled':'')+'>'+(n?'I am still stuck':'Give me a nudge')+'</button><button type="button" data-act="pagequick"'+(c.pageBusy?' disabled':'')+'>What is this step really asking?</button></div>'
-    + '<div class="askrow"><textarea id="pageTxt" rows="1" placeholder="Ask the attending"></textarea><button type="button" class="btn sm" data-act="pagesend"'+(c.pageBusy?' disabled':'')+'>Page</button></div></div>';
+  h += '<div class="askrow"><textarea id="pageTxt" rows="1" placeholder="What is confusing you on this step?"></textarea><button type="button" class="btn sm" data-act="pagesend"'+(c.pageBusy?' disabled':'')+'>Page</button></div></div>';
   return h;
 }
 function recapHTML(c){
@@ -179,7 +176,7 @@ function cardHTML(c){
     var picked = st.sel[i]===k, crossed = !picked && !ruled && st.cross && st.cross[i] && st.cross[i][k];
     h += '<button type="button" class="opt'+(picked?' sel r-'+(o.v==='good'?'good':(o.v==='warn'?'warn':'bad')):'')+(ruled&&!picked?' r-good':'')+(crossed?' crossed':'')+(ruled?' ruled':'')+'" data-act="pick" data-k="'+k+'"><kbd>'+optKey(o,k)+'</kbd><span class="t">'+esc(optText(o))+'</span><span class="x" data-act="cross" data-k="'+k+'" role="button" aria-label="Cross out" title="Cross out">abc</span></button>';
   });
-  h += otherBlock(c,i) + '</div>';
+  h += '</div>';
   var p = st.sel[i];
   if (p!==undefined){ var o = s.opts[p]; h += fbHtml(o.v==='good'?'good':(o.v==='warn'?'warn':'bad'), esc(o.fb), o.lab); }
   if (st.otherFb[i]) h += fbHtml('note', esc(st.otherFb[i]), 'On your reasoning');
@@ -458,8 +455,7 @@ stage.addEventListener('click', async function(e){
   else if (act==='restart'){ c2.st = fresh(); renderStage(); window.scrollTo({top:0}); }
   else if (act==='stop'){ if (c2.ctl) c2.ctl.abort(); }
   else if (act==='retry'){ c2.steps=[]; c2.reveal=null; c2.meta=null; c2.st=fresh(); c2.error=null; c2.stopped=false; renderStage(); gen(c2); }
-  else if (act==='pageopen'){ st.pageOpen = st.pageOpen || {}; st.pageOpen[i] = !st.pageOpen[i]; renderStage(); }
-  else if (act==='pagequick'){ pageAttending(c2, i, el.textContent); }
+  else if (act==='pageopen'){ st.pageOpen = st.pageOpen || {}; st.pageOpen[i] = !st.pageOpen[i]; renderStage(); var pf = document.getElementById('pageTxt'); if (pf) pf.focus(); }
   else if (act==='pagesend'){ var pt = (document.getElementById('pageTxt').value||'').trim(); if (pt) pageAttending(c2, i, pt); }
   else if (act==='chip'){ if (!c2.chatBusy && proGate()) ask(c2, el.textContent); }
   else if (act==='ask'){ var q2 = (document.getElementById('chatTxt').value||'').trim(); if (q2 && !c2.chatBusy && proGate()){ document.getElementById('chatTxt').value = ''; ask(c2, q2); } }
