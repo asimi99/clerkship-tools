@@ -6,15 +6,13 @@ window.SR_CONFIG = {
   SITE: 'https://asimi99.github.io/senior-resident/',
 
   /* Billing. While BILLING_LIVE is false everyone has full access and Upgrade collects a waitlist.
-     To start charging: deploy supabase/functions, run supabase/senior-resident.sql, paste the two
-     Stripe Payment Links below, then set BILLING_LIVE to true. */
+     To start charging: deploy supabase/functions, run supabase/senior-resident.sql, paste the
+     Stripe Payment Link below, then set BILLING_LIVE to true. */
   BILLING_LIVE: false,
   FREE_DAILY: 3,
   PRO_DAILY: 40,
   CURRENCY: 'CAD',
   PRICE_MONTH: 15,
-  PRICE_YEAR: 120,
-  STRIPE_LINK_MONTH: '',
-  STRIPE_LINK_YEAR: '',
+  STRIPE_LINK: '',
   STRIPE_PORTAL: ''
 };

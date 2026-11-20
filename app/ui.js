@@ -231,7 +231,7 @@ function planCardHTML(){
   var h = '<section class="panel plan"><h2>Plan</h2>';
   if (!billingLive()){
     h += '<p><b>Early access.</b> Everything is unlocked while Senior Resident is in early access.</p>'
-      + '<p class="muted sm">Pro will be '+money(CFG.PRICE_MONTH)+' '+CFG.CURRENCY+' a month or '+money(CFG.PRICE_YEAR)+' a year. Early users get first access to launch pricing.</p>'
+      + '<p class="muted sm">Pro will be '+money(CFG.PRICE_MONTH)+' '+CFG.CURRENCY+' a month. Early users get first access to launch pricing.</p>'
       + (waitlisted?'<p class="okline">'+IC.check+' You are on the Pro list.</p>':'<div class="row"><button type="button" class="btn" data-act="waitlist">Tell me when Pro opens</button></div>');
   } else if (plan.name==='pro'){
     h += '<p><b>Pro.</b> '+(CFG.PRO_DAILY||40)+' questions a day and every feature.'+(plan.until?' Renews '+esc(new Date(plan.until).toLocaleDateString())+'.':'')+'</p>'
@@ -280,12 +280,12 @@ async function mountGoogle(){
 }
 function pricingHTML(){
   var perks = [(CFG.PRO_DAILY||40)+' questions a day, a full block','Hardest mode at exam pace','Extra help steps when you are stuck','Follow-up questions with your senior','Pearl export to Anki'];
-  var live = billingLive() && (CFG.STRIPE_LINK_MONTH || CFG.STRIPE_LINK_YEAR);
+  var live = billingLive() && CFG.STRIPE_LINK;
   return '<div class="sheet" role="dialog" aria-label="Senior Resident Pro"><button type="button" class="close" data-act="closemodal" aria-label="Close">×</button>'
     + '<div class="ph2">'+IC.logo+'<h2>Senior Resident Pro</h2></div><ul class="perks">'+perks.map(function(p){ return '<li>'+IC.check+esc(p)+'</li>'; }).join('')+'</ul>'
-    + '<div class="prices"><button type="button" class="price" data-act="buy" data-p="year"><span class="tag">Best value</span><b>'+money(CFG.PRICE_YEAR)+'</b><span>a year</span><em>'+money((CFG.PRICE_YEAR/12).toFixed(0))+' a month</em></button>'
-    + '<button type="button" class="price" data-act="buy" data-p="month"><b>'+money(CFG.PRICE_MONTH)+'</b><span>a month</span><em>Cancel anytime</em></button></div>'
-    + '<p class="muted sm c" id="buymsg">'+(live?'Prices in '+esc(CFG.CURRENCY)+'. Secure checkout by Stripe.':'Pro is not open yet. Pick a plan and you will be first to hear.')+'</p></div>';
+    + '<div class="prices one"><div class="price"><b>'+money(CFG.PRICE_MONTH)+'</b><span>a month</span><em>Cancel anytime</em></div></div>'
+    + '<button type="button" class="btn wide" data-act="buy" data-p="month">'+(live?'Get Pro':'Tell me when Pro opens')+'</button>'
+    + '<p class="muted sm c" id="buymsg">'+(live?'Prices in '+esc(CFG.CURRENCY)+'. Secure checkout by Stripe.':'Pro is not open yet. You will be first to hear.')+'</p></div>';
 }
 function openModal(html){ modalEl.innerHTML = html; modalEl.hidden = false; }
 function closeModal(){ modalEl.hidden = true; modalEl.innerHTML = ''; }
@@ -294,7 +294,7 @@ async function joinWaitlist(period){
   if (SR.user && SR.sb){ try { await SR.sb.from('sr_waitlist').insert({ email:SR.user.email, period:period||'' }); } catch(e){} }
 }
 async function buy(period){
-  var link = period==='year' ? CFG.STRIPE_LINK_YEAR : CFG.STRIPE_LINK_MONTH, msg = document.getElementById('buymsg');
+  var link = CFG.STRIPE_LINK, msg = document.getElementById('buymsg');
   if (!billingLive() || !link){ await joinWaitlist(period); if (msg) msg.innerHTML = '<span class="okline">'+IC.check+' You are on the list. You will hear the day Pro opens.</span>'; return; }
   if (!SR.user){ closeModal(); view = 'account'; renderAll(); return; }
   window.open(link + (link.indexOf('?')<0?'?':'&') + 'client_reference_id=' + encodeURIComponent(SR.user.id) + '&prefilled_email=' + encodeURIComponent(SR.user.email||''), '_blank', 'noopener');
