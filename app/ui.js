@@ -153,6 +153,8 @@ function paywallHTML(){
   return '<div class="paywall">'+IC.logo+'<h2>That is today\'s '+plan.limit+' free questions</h2><p class="muted">They reset at midnight. Pro gives you '+(CFG.PRO_DAILY||40)+' a day and adds Hardest mode, extra help steps and pearl export.</p>'
     + '<div class="row c"><button type="button" class="btn" data-act="upgrade">See Pro</button>'+(signed?'':'<button type="button" class="btn ghost" data-go="account">Sign in</button>')+'</div></div>';
 }
+function optKey(o, k){ var m = String(o.t||'').match(/^\s*([A-J])[.)]\s+/); return m ? m[1] : String.fromCharCode(65 + k); }
+function optText(o){ return String(o.t||'').replace(/^\s*[A-J][.)]\s+/, ''); }
 function cardHTML(c){
   var st=c.st, i=st.i, s=c.steps[i], h='';
   if (!s){
@@ -175,7 +177,7 @@ function cardHTML(c){
     var rk = String(o.t||'').trim().toLowerCase();
     var ruled = elimLike && o.v==='good' && ((st.sel[i]===k) || (st.ruled && st.ruled[rk]));
     var picked = st.sel[i]===k, crossed = !picked && !ruled && st.cross && st.cross[i] && st.cross[i][k];
-    h += '<button type="button" class="opt'+(picked?' sel r-'+(o.v==='good'?'good':(o.v==='warn'?'warn':'bad')):'')+(ruled&&!picked?' r-good':'')+(crossed?' crossed':'')+(ruled?' ruled':'')+'" data-act="pick" data-k="'+k+'"><kbd>'+(k+1)+'</kbd><span class="t">'+esc(o.t)+'</span><span class="x" data-act="cross" data-k="'+k+'" role="button" aria-label="Cross out" title="Cross out">abc</span></button>';
+    h += '<button type="button" class="opt'+(picked?' sel r-'+(o.v==='good'?'good':(o.v==='warn'?'warn':'bad')):'')+(ruled&&!picked?' r-good':'')+(crossed?' crossed':'')+(ruled?' ruled':'')+'" data-act="pick" data-k="'+k+'"><kbd>'+optKey(o,k)+'</kbd><span class="t">'+esc(optText(o))+'</span><span class="x" data-act="cross" data-k="'+k+'" role="button" aria-label="Cross out" title="Cross out">abc</span></button>';
   });
   h += otherBlock(c,i) + '</div>';
   var p = st.sel[i];
@@ -272,7 +274,7 @@ function accountHTML(){
   var R = [['US','American'],['CA','Canadian'],['UK','British']];
   h += '<section class="panel"><h2>Preferences</h2><div class="pref"><span>Default difficulty</span>'+'<div class="seg">'+LEVELS.map(function(l){ return '<button type="button" role="radio" aria-checked="'+(l[0]===LEVEL)+'" data-act="lvl" data-l="'+l[0]+'">'+l[1]+'</button>'; }).join('')+'</div></div>'
     + '<div class="pref"><span>Spelling and guidelines</span><div class="seg">'+R.map(function(r){ return '<button type="button" role="radio" aria-checked="'+(r[0]===REGION)+'" data-act="region" data-r="'+r[0]+'">'+r[1]+'</button>'; }).join('')+'</div></div>'
-    + '<p class="muted sm">Keys: 1 to 4 pick an option, Enter continues, Backspace goes back. Right-click an option to cross it out.</p></section>'
+    + '<p class="muted sm">Keys: the option's letter picks it, Enter continues, Backspace goes back. Right-click an option to cross it out.</p></section>'
     + '<p class="legal"><a href="../privacy.html" target="_blank" rel="noopener">Privacy</a><a href="../terms.html" target="_blank" rel="noopener">Terms</a><span>Study aid only. Not medical advice. Not affiliated with any question bank.</span></p>';
   return h;
 }
@@ -468,7 +470,9 @@ document.addEventListener('keydown', function(e){
   if (typing){ if ((tg.id==='chatTxt' || tg.id==='pageTxt') && e.key==='Enter' && !e.shiftKey){ e.preventDefault(); var b = stage.querySelector(tg.id==='chatTxt' ? '[data-act="ask"]' : '[data-act="pagesend"]'); if (b) b.click(); } return; }
   if (e.metaKey || e.ctrlKey || e.altKey || view!=='coach' || !modalEl.hidden) return;
   var c = cases[cur]; if (!c || !c.steps[c.st.i]) return;
-  if (/^[1-9]$/.test(e.key)){ var k = +e.key - 1; if (c.steps[c.st.i].opts[k]){ e.preventDefault(); pick(c, k); } }
+  var os = c.steps[c.st.i].opts;
+  if (/^[1-9]$/.test(e.key)){ var k = +e.key - 1; if (os[k]){ e.preventDefault(); pick(c, k); } }
+  else if (/^[a-j]$/i.test(e.key)){ var L = e.key.toUpperCase(), ix = os.findIndex(function(o, j){ return optKey(o, j)===L; }); if (ix>=0){ e.preventDefault(); pick(c, ix); } }
   else if (e.key==='Enter' || e.key==='ArrowRight'){ var n = stage.querySelector('[data-act="next"]:not([disabled])'); if (n){ e.preventDefault(); n.click(); } }
   else if (e.key==='Backspace' || e.key==='ArrowLeft'){ var bk = stage.querySelector('.foot [data-act="back"]:not([disabled])'); if (bk){ e.preventDefault(); bk.click(); } }
 });

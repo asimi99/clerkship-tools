@@ -25,7 +25,15 @@
 
   /* UWorld: known layout */
   function uwQid(){ var m = (document.body.innerText || '').match(/Question Id:?\s*(\d{3,7})/i); return m ? m[1] : ''; }
-  function itemNo(){ var m = (document.body.innerText || '').match(/\b(?:Item|Question)\s*:?\s*#?\s*(\d{1,3})\s*(?:of|\/)\s*\d{1,3}\b/i); return m ? m[1] : ''; }
+  function itemNo(){
+    var t = document.body.innerText || '';
+    var m = t.match(/\b(?:Item|Question)\s*:?\s*#?\s*(\d{1,3})\s*(?:of|\/)\s*\d{1,3}\b/i); if (m) return m[1];
+    var k = t.search(/Question\s*Id/i);
+    if (k >= 0){ m = t.slice(Math.max(0, k - 200), k + 200).replace(/Question\s*Id:?\s*\d+/i, ' ').match(/\b(\d{1,3})\s*(?:of|\/)\s*(\d{1,3})\b/); if (m) return m[1]; }
+    var els = document.querySelectorAll('tr[class*="selected" i],tr[class*="active" i],tr[class*="current" i],li[class*="selected" i],li[class*="active" i],[aria-current="true"],[aria-current="page"]');
+    for (var i = 0; i < els.length; i++){ var x = clean(els[i].innerText).match(/^(\d{1,3})(?!\d)/); if (x) return x[1]; }
+    return '';
+  }
   function uwStem(){ return document.querySelector('.question-content') || document.querySelector('#questionText') || document.querySelector('[class*="question-content"]') || document.querySelector('[id*="questionText"]'); }
   function radioChoices(){
     var out = [];
