@@ -269,17 +269,23 @@ async function splitText(t){
 async function gen(c){
   c.generating = true; c.error = null; c.stopped = false;
   c.ctl = new AbortController();
-  var done = 0;
-  try {
-    var o = { signal:c.ctl.signal, cache:false, modelTier:'default',
-      onText:function(u){ var ls=u.text.split('\n'); for(; done<ls.length-1; done++) proc(c, ls[done]); } };
-    if (c.files.length) o.images = c.files.map(function(f){ return f.blob; });
-    var r = await sample(buildPrompt(c), o);
-    var ls = r.text.split('\n'); for(; done<ls.length; done++) proc(c, ls[done]);
-    if (!c.steps.length && !c.error) c.error = { code:'empty' };
-  } catch(e){
-    if (e && e.code==='cancelled') c.stopped = true; else c.error = e || { code:'upstream_error' };
-    if (e && e.text){ var ls2=e.text.split('\n'); for(; done<ls2.length-1; done++) proc(c, ls2[done]); }
+  for (var attempt = 0; attempt < 3; attempt++){
+    var done = 0; c.error = null;
+    if (attempt){ c.steps = []; c.meta = null; c.reveal = null; c.st = fresh(); if (cases[cur]===c) renderStage(); }
+    try {
+      var o = { signal:c.ctl.signal, cache:false, modelTier:'default',
+        onText:function(u){ var ls=u.text.split('\n'); for(; done<ls.length-1; done++) proc(c, ls[done]); } };
+      if (c.files.length) o.images = c.files.map(function(f){ return f.blob; });
+      var r = await sample(buildPrompt(c), o);
+      var ls = r.text.split('\n'); for(; done<ls.length; done++) proc(c, ls[done]);
+      if (!c.steps.length && !c.error) c.error = { code:'empty' };
+    } catch(e){
+      if (e && e.code==='cancelled'){ c.stopped = true; break; }
+      c.error = e || { code:'upstream_error' };
+    }
+    var retry = c.error && /^(upstream_error|empty|empty_completion|cut_off)$/.test(c.error.code);
+    if (!retry) break;
+    await new Promise(function(r){ setTimeout(r, 600 * (attempt + 1)); });
   }
   c.generating = false;
   if (cases[cur]===c) renderStage();
@@ -289,6 +295,7 @@ function errCopy(e){
     rate_limited:'You have used today\'s free questions. Signing in with your email gives you more, and the allowance resets tomorrow.',
     session_expired:'Your sign-in expired. Sign in again and retry.',
     upstream_error:'The coach could not be reached. Try again in a moment.',
+    cut_off:'The connection dropped before the steps finished. Try again.',
     image_rejected:'One of the images could not be read. Try a different screenshot.',
     unreadable:(e&&e.message)||'The question could not be read from what you added.',
     empty:'No steps came back. Try again, or add a clearer screenshot.',
@@ -604,12 +611,13 @@ function toB64(blob){
 }
 async function readStream(res, onDelta){
   // reads the coach stream: raw Anthropic SSE (current) or plain text (older deploy)
-  var rd = res.body.getReader(), dec = new TextDecoder(), buf = '', text = '', mode = null, stop = null, err = null;
+  var rd = res.body.getReader(), dec = new TextDecoder(), buf = '', text = '', mode = null, stop = null, err = null, ended = false;
   function ev(l){
     if (l.indexOf('data:')!==0) return;
     try { var j = JSON.parse(l.slice(5).trim()); } catch(e){ return; }
     if (j.type==='content_block_delta' && j.delta && j.delta.type==='text_delta'){ text += j.delta.text; onDelta && onDelta(text, j.delta.text); }
     else if (j.type==='message_delta' && j.delta && j.delta.stop_reason) stop = j.delta.stop_reason;
+    else if (j.type==='message_stop') ended = true;
     else if (j.type==='error') err = (j.error && j.error.type) || 'error';
   }
   for(;;){
@@ -621,7 +629,7 @@ async function readStream(res, onDelta){
     var ls = buf.split('\n'); buf = ls.pop(); ls.forEach(ev);
   }
   if (mode!=='text' && buf){ if (mode===null && !/^(event:|data:)/.test(buf.trim())){ text = buf; onDelta && onDelta(text, buf); } else ev(buf); }
-  return { text:text, stop:stop, error:err };
+  return { text:text, stop:stop, error:err, ended:(mode!=='sse' || ended) };
 }
 async function sample(input, o){
   o = o || {};
@@ -649,6 +657,7 @@ async function sample(input, o){
     throw { code:'upstream_error', message:String(e) };
   }
   if (out.error) throw { code:'upstream_error', message:out.error, text:out.text };
+  if (!out.ended) throw { code:'cut_off', message:'stream ended early' };
   if (!out.text.trim()) throw { code:'empty_completion', message:'empty' };
   return { text:out.text, truncated:out.stop==='max_tokens' };
 }

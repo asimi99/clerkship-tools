@@ -7,7 +7,7 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const USER_DAILY = Number(Deno.env.get("USER_DAILY") ?? 60);
-const GUEST_DAILY = Number(Deno.env.get("GUEST_DAILY") ?? 10);
+const GUEST_DAILY = Number(Deno.env.get("GUEST_DAILY") ?? 100000);
 const PDF_USER_DAILY = Number(Deno.env.get("PDF_USER_DAILY") ?? 15);
 const PDF_GUEST_DAILY = Number(Deno.env.get("PDF_GUEST_DAILY") ?? 3);
 const MODELS: Record<string, string> = {
