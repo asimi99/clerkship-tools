@@ -293,6 +293,7 @@ async function gen(c){
   }
   c.generating = false;
   if (cases[cur]===c) renderStage();
+  if (EMBED && window.parent !== window){ try { await persist(); } catch(e){} window.parent.postMessage({ type:'sc-done', qid:c.qid||'', ok:!c.error && !c.stopped }, '*'); }
 }
 function errCopy(e){
   var m = {

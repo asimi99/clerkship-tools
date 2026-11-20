@@ -1,8 +1,8 @@
-var panelPort = null, wantGrab = false;
+var panelPort = null, wantGrab = false, bgBusy = '', bgReady = '';
 
-function notifyTabs(open){
+function notifyTabs(msg){
   chrome.tabs.query({ url: ['https://*.uworld.com/*'] }, function(tabs){
-    (tabs || []).forEach(function(t){ chrome.tabs.sendMessage(t.id, { t: 'state', open: open }).catch(function(){}); });
+    (tabs || []).forEach(function(t){ chrome.tabs.sendMessage(t.id, msg).catch(function(){}); });
   });
 }
 function openPanel(windowId){
@@ -11,14 +11,33 @@ function openPanel(windowId){
 }
 function closePanel(){
   if (panelPort){ panelPort.postMessage({ t: 'close' }); return; }
-  notifyTabs(false);
+  notifyTabs({ t: 'state', open: false });
+}
+async function ensureOffscreen(){
+  if (await chrome.offscreen.hasDocument()) return;
+  await chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['IFRAME_SCRIPTING'], justification: 'Reads the UWorld question in the background so the coaching is ready when the panel opens.' });
+}
+async function closeOffscreen(){ try { if (await chrome.offscreen.hasDocument()) await chrome.offscreen.closeDocument(); } catch(e){} }
+
+async function bgCoach(tabId, qid){
+  if (panelPort || !qid || qid === bgBusy || qid === bgReady) return;
+  bgBusy = qid; bgReady = '';
+  notifyTabs({ t: 'bg', state: 'reading', qid: qid });
+  var q;
+  try { q = await chrome.tabs.sendMessage(tabId, { t: 'grab' }); } catch(e){ q = null; }
+  if (!q || !q.text){ bgBusy = ''; notifyTabs({ t: 'bg', state: 'idle' }); return; }
+  try { await ensureOffscreen(); } catch(e){ bgBusy = ''; notifyTabs({ t: 'bg', state: 'idle' }); return; }
+  setTimeout(function(){ chrome.runtime.sendMessage({ t: 'bg-coach', q: q }).catch(function(){}); }, 50);
+  setTimeout(function(){ if (bgBusy === qid){ bgBusy = ''; notifyTabs({ t: 'bg', state: 'idle' }); } }, 120000);
 }
 
 chrome.runtime.onConnect.addListener(function(port){
   if (port.name !== 'sc-panel') return;
-  panelPort = port; notifyTabs(true);
+  panelPort = port; bgBusy = ''; bgReady = '';
+  closeOffscreen();
+  notifyTabs({ t: 'state', open: true });
   if (wantGrab){ wantGrab = false; port.postMessage({ t: 'grab' }); }
-  port.onDisconnect.addListener(function(){ if (panelPort === port) panelPort = null; notifyTabs(false); });
+  port.onDisconnect.addListener(function(){ if (panelPort === port) panelPort = null; notifyTabs({ t: 'state', open: false }); });
 });
 
 chrome.runtime.onMessage.addListener(function(m, sender, reply){
@@ -27,7 +46,15 @@ chrome.runtime.onMessage.addListener(function(m, sender, reply){
     return true;
   }
   if (m.t === 'close'){ closePanel(); return; }
-  if (m.t === 'newq' && panelPort){ panelPort.postMessage({ t: 'newq', qid: m.qid }); return; }
+  if (m.t === 'newq'){
+    if (panelPort) panelPort.postMessage({ t: 'newq', qid: m.qid });
+    else if (sender.tab) bgCoach(sender.tab.id, m.qid);
+    return;
+  }
+  if (m.t === 'bg-done'){
+    if (m.qid === bgBusy){ bgBusy = ''; bgReady = m.ok ? m.qid : ''; notifyTabs({ t: 'bg', state: m.ok ? 'ready' : 'idle', qid: m.qid }); }
+    return;
+  }
   if (m.t === 'grab'){
     chrome.tabs.query({ active: true, lastFocusedWindow: true }, function(tabs){
       var tab = (tabs || [])[0];

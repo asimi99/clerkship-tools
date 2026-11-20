@@ -51,7 +51,8 @@
   }
   function dataUrl(b){ return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result); }; r.readAsDataURL(b); }); }
   chrome.runtime.onMessage.addListener(function(m, sender, reply){
-    if (m.t === 'state') setOpen(!!m.open);
+    if (m.t === 'state'){ setOpen(!!m.open); if (m.open) setBg('idle'); }
+    if (m.t === 'bg') setBg(m.state);
     if (m.t === 'grab'){
       grab().then(async function(q){
         if (!q){ reply({ text: '' }); return; }
@@ -60,16 +61,20 @@
       return true;
     }
   });
-  document.addEventListener('click', function(e){
-    if (isOpen) return;
-    var el = e.target && e.target.closest ? e.target.closest('button, a, [role="button"], li, [class*="navigat"], [class*="question-list"] *') : null;
-    if (!el) return;
-    var t = ((el.getAttribute('aria-label') || '') + ' ' + (el.title || '') + ' ' + (el.innerText || '')).trim().toLowerCase();
-    var nav = /\b(next|previous|prev)\b/.test(t) || (/^\d{1,3}$/.test((el.innerText || '').trim()) && !!el.closest('[class*="navigat"], [class*="question-list"], [class*="questionList"], mat-sidenav, aside'));
-    if (nav) chrome.runtime.sendMessage({ t: 'open' }, function(){ void chrome.runtime.lastError; });
-  }, true);
-  var last = qid(), tmr = null;
-  function check(){ var id = qid(); if (id && id !== last){ last = id; if (isOpen) chrome.runtime.sendMessage({ t: 'newq', qid: id }).catch(function(){}); } }
+  var bgState = 'idle';
+  function setBg(state){
+    bgState = state; tab.classList.toggle('reading', state === 'reading'); tab.classList.toggle('ready', state === 'ready');
+    tab.querySelector('.sc-label').textContent = state === 'reading' ? 'Reading…' : (state === 'ready' ? 'Ready' : 'Stem Coach');
+  }
+  function popIfReady(e){
+    if (isOpen || bgState !== 'ready' || (e && e.target === tab) || (e && tab.contains(e.target))) return;
+    setBg('idle');
+    chrome.runtime.sendMessage({ t: 'open' }, function(){ void chrome.runtime.lastError; });
+  }
+  document.addEventListener('pointerdown', popIfReady, true);
+  document.addEventListener('keydown', popIfReady, true);
+  var last = '', tmr = null;
+  function check(){ var id = qid(); if (id && id !== last){ last = id; chrome.runtime.sendMessage({ t: 'newq', qid: id }).catch(function(){}); } }
   new MutationObserver(function(){ if (!tmr) tmr = setTimeout(function(){ tmr = null; check(); }, 250); }).observe(document.body, { childList: true, subtree: true, characterData: true });
   setInterval(check, 1500);
 })();
