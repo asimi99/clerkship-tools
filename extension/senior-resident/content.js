@@ -1,6 +1,8 @@
 (function(){
-  if (window.top !== window || window.__srLoaded) return;
-  window.__srLoaded = true;
+  var VER = ''; try { VER = chrome.runtime.getManifest().version; } catch(e){ return; }
+  if (window.top !== window || window.__srLoaded === VER) return;
+  window.__srLoaded = VER;
+  var stale = document.getElementById('sr-tab'); if (stale) stale.remove();
 
   var SITES = [[/uworld\.com$/, 'UWorld'], [/amboss\.com$/, 'AMBOSS'], [/nbme\.org$|starttest\.com$/, 'NBME'], [/kaptest\.com$/, 'Kaplan'], [/truelearn\.(com|net)$/, 'TrueLearn'], [/roshreview\.com$/, 'Rosh Review'], [/boardvitals\.com$/, 'BoardVitals'], [/canadaqbank\.com$/, 'CanadaQBank'], [/lecturio\.com$/, 'Lecturio']];
   var host = location.hostname, SRC = host.replace(/^www\./, '');

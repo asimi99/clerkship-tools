@@ -112,4 +112,18 @@ function toggle(tab, grab){
   chrome.tabs.sendMessage(tab.id, { t: 'ping' }).catch(function(){ inject(tab.id); });
 }
 chrome.action.onClicked.addListener(function(tab){ toggle(tab, false); });
+
+/* Picks up a newer copy of the extension folder on its own (developer installs), then puts the side tab back on open question pages. */
+async function selfUpdate(){
+  try {
+    var m = await (await fetch(chrome.runtime.getURL('manifest.json') + '?t=' + Date.now(), { cache: 'no-store' })).json();
+    if (m && m.version && m.version !== chrome.runtime.getManifest().version) chrome.runtime.reload();
+  } catch(e){}
+}
+chrome.runtime.onInstalled.addListener(function(){
+  var pats = (chrome.runtime.getManifest().content_scripts || [{}])[0].matches || [];
+  chrome.tabs.query({ url: pats }, function(tabs){ (tabs || []).forEach(function(t){ inject(t.id); }); });
+});
+chrome.runtime.onStartup.addListener(selfUpdate);
+chrome.runtime.onMessage.addListener(function(m){ if (m && (m.t === 'hello' || m.t === 'newq' || m.t === 'open')) selfUpdate(); });
 chrome.commands.onCommand.addListener(function(cmd, tab){ if (tab) toggle(tab, cmd === 'coach-question'); });
