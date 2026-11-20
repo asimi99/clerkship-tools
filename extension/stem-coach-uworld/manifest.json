@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Stem Coach for UWorld",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Opens Stem Coach beside the UWorld question you are on and walks you to the answer one decision at a time. Read only: it never clicks anything in UWorld.",
   "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" },
   "action": { "default_title": "Stem Coach (Alt+S)" },

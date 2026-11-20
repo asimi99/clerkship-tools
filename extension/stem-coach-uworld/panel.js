@@ -1,3 +1,4 @@
+document.getElementById("coach").src = "https://asimi99.github.io/clerkship-tools/stem-coach/?embed=1&t=" + Date.now();
 (function(){
   var COACH = 'https://asimi99.github.io';
   var coach = document.getElementById('coach'), msg = document.getElementById('msg'), grab = document.getElementById('grab');
