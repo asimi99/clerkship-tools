@@ -9,9 +9,10 @@ function openPanel(windowId){
   try { return chrome.sidePanel.open({ windowId: windowId }); }
   catch(e){ return Promise.reject(e); }
 }
-function closePanel(){
-  if (panelPort){ panelPort.postMessage({ t: 'close' }); return; }
-  notifyTabs({ t: 'state', open: false });
+function closePanel(windowId){
+  if (panelPort){ try { panelPort.postMessage({ t: 'close' }); } catch(e){} }
+  chrome.runtime.sendMessage({ t: 'panel-close' }).catch(function(){});
+  if (chrome.sidePanel.close && windowId != null) chrome.sidePanel.close({ windowId: windowId }).catch(function(){});
 }
 async function ensureOffscreen(){
   if (await chrome.offscreen.hasDocument()) return;
@@ -45,7 +46,7 @@ chrome.runtime.onMessage.addListener(function(m, sender, reply){
     openPanel(sender.tab.windowId).then(function(){ reply({ ok: true }); }, function(e){ reply({ ok: false, err: String(e) }); });
     return true;
   }
-  if (m.t === 'close'){ closePanel(); return; }
+  if (m.t === 'close'){ closePanel(sender.tab && sender.tab.windowId); return; }
   if (m.t === 'newq'){
     if (panelPort) panelPort.postMessage({ t: 'newq', qid: m.qid });
     else if (sender.tab) bgCoach(sender.tab.id, m.qid);
@@ -67,7 +68,7 @@ chrome.runtime.onMessage.addListener(function(m, sender, reply){
 });
 
 function toggle(tab, grab){
-  if (panelPort && !grab){ closePanel(); return; }
+  if (panelPort && !grab){ closePanel(tab.windowId); return; }
   if (grab){ if (panelPort) panelPort.postMessage({ t: 'grab' }); else wantGrab = true; }
   openPanel(tab.windowId).catch(function(){});
 }

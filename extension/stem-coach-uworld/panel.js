@@ -3,7 +3,13 @@ document.getElementById('coach').src = 'https://asimi99.github.io/clerkship-tool
   var COACH = 'https://asimi99.github.io';
   var coach = document.getElementById('coach'), msg = document.getElementById('msg'), grab = document.getElementById('grab');
   var ready = false, queue = null;
-  var port = chrome.runtime.connect({ name: 'sc-panel' });
+  var port;
+  function connect(){
+    port = chrome.runtime.connect({ name: 'sc-panel' });
+    port.onMessage.addListener(onPort);
+    port.onDisconnect.addListener(function(){ setTimeout(connect, 200); });
+  }
+  chrome.runtime.onMessage.addListener(function(m){ if (m && m.t === 'panel-close') window.close(); });
   function say(t){ msg.textContent = t || ''; msg.title = t || ''; }
   function toCoach(d){ if (ready) coach.contentWindow.postMessage(d, COACH); else queue = d; }
   function blob(u){ var p = u.split(','), mime = (p[0].match(/:(.*?);/) || [])[1] || 'image/png', b = atob(p[1]), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return new Blob([a], { type: mime }); }
@@ -20,11 +26,12 @@ document.getElementById('coach').src = 'https://asimi99.github.io/clerkship-tool
   grab.addEventListener('click', doGrab);
   setTimeout(doGrab, 300);
   document.getElementById('hide').addEventListener('click', function(){ window.close(); });
-  port.onMessage.addListener(function(m){
+  function onPort(m){
     if (m.t === 'close') window.close();
     if (m.t === 'grab') doGrab();
     if (m.t === 'newq'){ clearTimeout(window.__scT); window.__scT = setTimeout(doGrab, 450); }
-  });
+  }
+  connect();
   window.addEventListener('message', function(e){
     if (e.source === coach.contentWindow && e.origin === COACH && (e.data || {}).type === 'sc-ready'){
       ready = true; if (queue){ coach.contentWindow.postMessage(queue, COACH); queue = null; }

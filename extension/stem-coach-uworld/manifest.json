@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Stem Coach for UWorld",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "Opens Stem Coach beside the UWorld question you are on and walks you to the answer one decision at a time. Read only: it never clicks anything in UWorld.",
   "icons": {
     "16": "icon16.png",
