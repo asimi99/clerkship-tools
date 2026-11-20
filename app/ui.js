@@ -8,6 +8,7 @@ var IC = {
   read:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>',
   check:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   x:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  pager:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="14" height="11" rx="2.5"/><path d="M6.5 13h7M6.5 16.5h4"/><path d="M16 5.5a5 5 0 0 1 4.5 4.5M16 2a8.5 8.5 0 0 1 8 8" transform="translate(-1.5 .5)"/></svg>',
   bolt:'<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>',
   logo:'<svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f7ee0"/><stop offset="1" stop-color="#123f86"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#lg)"/><path d="M17 29.5 32 17l15 12.5" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 43.5 32 31l15 12.5" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".62"/><circle cx="32" cy="50.5" r="3.4" fill="#fff" opacity=".9"/></svg>'
 };
@@ -104,6 +105,19 @@ function otherBlock(c, i){
   }
   return h;
 }
+function pageHTML(c, i){
+  var st = c.st, th = (st.pages && st.pages[i]) || [], open = st.pageOpen && st.pageOpen[i];
+  if (!open) return '<button type="button" class="pagebtn" data-act="pageopen">'+IC.pager+'<span><b>Still stuck?</b> Page the attending</span></button>';
+  var h = '<div class="pagebox"><div class="pagehd">'+IC.pager+'<b>Attending</b><span>on call</span><span class="spacer"></span><button type="button" class="lnk" data-act="pageopen">Hide</button></div>';
+  if (!th.length && !c.pageBusy) h += '<p class="muted sm">Page the attending for a nudge on this step. You still make the call.</p>';
+  th.forEach(function(m){ h += '<div class="pg '+(m.role==='user'?'me':'att')+'">'+(m.role==='user'?'':'<i>Attending</i>')+'<span>'+esc(m.content)+'</span></div>'; });
+  h += '<div class="pg att" id="pageLive"'+(c.pageBusy?'':' hidden')+'><i>Attending</i><span>'+esc(c.pageLive||'')+'</span></div>';
+  if (c.pageBusy && !c.pageLive) h += waitHTML('Paging');
+  var n = th.filter(function(m){ return m.role==='assistant'; }).length;
+  h += '<div class="chips"><button type="button" data-act="pagequick"'+(c.pageBusy?' disabled':'')+'>'+(n?'I am still stuck':'Give me a nudge')+'</button><button type="button" data-act="pagequick"'+(c.pageBusy?' disabled':'')+'>What is this step really asking?</button></div>'
+    + '<div class="askrow"><textarea id="pageTxt" rows="1" placeholder="Ask the attending"></textarea><button type="button" class="btn sm" data-act="pagesend"'+(c.pageBusy?' disabled':'')+'>Page</button></div></div>';
+  return h;
+}
 function recapHTML(c){
   var rows = c.steps.map(function(s, i){
     var f = c.st.first[i]; if (f===undefined) return '';
@@ -167,6 +181,7 @@ function cardHTML(c){
   var p = st.sel[i];
   if (p!==undefined){ var o = s.opts[p]; h += fbHtml(o.v==='good'?'good':(o.v==='warn'?'warn':'bad'), esc(o.fb), o.lab); }
   if (st.otherFb[i]) h += fbHtml('note', esc(st.otherFb[i]), 'On your reasoning');
+  if (!(st.solved && s.type==='final')) h += pageHTML(c, i);
   if (st.solved && s.type==='final'){
     if (c.reveal){ h += revealHTML(c); c.revealShown = true; h += chatHTML(c); }
     else if (c.generating || c.queued) h += waitHTML(c.queued?'Waiting for the questions before it':'Preparing the explanation');
@@ -344,7 +359,7 @@ stage.addEventListener('input', function(e){
   if (e.target.id==='qtext'){ up.text = e.target.value; var b=stage.querySelector('[data-act="start"]'); if (b) b.disabled = !(up.files.length||up.text.trim()); }
   if (e.target.id==='otherTxt' && c) c.st.other[c.st.i] = { text:e.target.value, saved:false };
   if (e.target.id==='pearlQ'){ pearlQ = e.target.value; var l = document.getElementById('pearlList'); if (l) l.innerHTML = pearlListHTML(); }
-  if (e.target.id==='chatTxt'){ e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; }
+  if (e.target.id==='chatTxt' || e.target.id==='pageTxt'){ e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; }
 });
 ['dragover','dragenter'].forEach(function(n){ stage.addEventListener(n, function(e){ var d=e.target.closest('#drop'); if(d){ e.preventDefault(); d.classList.add('over'); } }); });
 ['dragleave','drop'].forEach(function(n){ stage.addEventListener(n, function(e){ var d=e.target.closest('#drop'); if(d) d.classList.remove('over'); }); });
@@ -441,13 +456,16 @@ stage.addEventListener('click', async function(e){
   else if (act==='restart'){ c2.st = fresh(); renderStage(); window.scrollTo({top:0}); }
   else if (act==='stop'){ if (c2.ctl) c2.ctl.abort(); }
   else if (act==='retry'){ c2.steps=[]; c2.reveal=null; c2.meta=null; c2.st=fresh(); c2.error=null; c2.stopped=false; renderStage(); gen(c2); }
+  else if (act==='pageopen'){ st.pageOpen = st.pageOpen || {}; st.pageOpen[i] = !st.pageOpen[i]; renderStage(); }
+  else if (act==='pagequick'){ pageAttending(c2, i, el.textContent); }
+  else if (act==='pagesend'){ var pt = (document.getElementById('pageTxt').value||'').trim(); if (pt) pageAttending(c2, i, pt); }
   else if (act==='chip'){ if (!c2.chatBusy && proGate()) ask(c2, el.textContent); }
   else if (act==='ask'){ var q2 = (document.getElementById('chatTxt').value||'').trim(); if (q2 && !c2.chatBusy && proGate()){ document.getElementById('chatTxt').value = ''; ask(c2, q2); } }
 });
 document.addEventListener('keydown', function(e){
   if (e.key==='Escape'){ zoomEl.hidden = true; if (!modalEl.hidden) closeModal(); return; }
   var tg = e.target, typing = tg && (/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName) || tg.isContentEditable);
-  if (typing){ if (tg.id==='chatTxt' && e.key==='Enter' && !e.shiftKey){ e.preventDefault(); var b = stage.querySelector('[data-act="ask"]'); if (b) b.click(); } return; }
+  if (typing){ if ((tg.id==='chatTxt' || tg.id==='pageTxt') && e.key==='Enter' && !e.shiftKey){ e.preventDefault(); var b = stage.querySelector(tg.id==='chatTxt' ? '[data-act="ask"]' : '[data-act="pagesend"]'); if (b) b.click(); } return; }
   if (e.metaKey || e.ctrlKey || e.altKey || view!=='coach' || !modalEl.hidden) return;
   var c = cases[cur]; if (!c || !c.steps[c.st.i]) return;
   if (/^[1-9]$/.test(e.key)){ var k = +e.key - 1; if (c.steps[c.st.i].opts[k]){ e.preventDefault(); pick(c, k); } }

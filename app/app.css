@@ -126,6 +126,16 @@ textarea{min-height:76px;resize:vertical}
 .fb.bad{background:var(--bad-soft);border-color:var(--bad)} .fb.bad b{color:var(--bad)}
 .fb.note{background:var(--brand-soft);border-color:var(--brand)} .fb.note b{color:var(--brand)}
 .foot{border-top:1px solid var(--line);padding-top:14px;margin-top:2px}
+.pagebtn{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;border:1px dashed var(--line);background:none;border-radius:999px;padding:7px 14px 7px 11px;font-size:14px;color:var(--muted);cursor:pointer}
+.pagebtn b{color:var(--fg);font-weight:600} .pagebtn svg{color:var(--brand)} .pagebtn:hover{border-color:var(--brand);border-style:solid;color:var(--fg)}
+.pagebox{border:1px solid var(--line);border-radius:14px;background:var(--raised);padding:12px;display:flex;flex-direction:column;gap:10px}
+.pagehd{display:flex;align-items:center;gap:7px;font-size:14px} .pagehd svg{color:var(--brand)}
+.pagehd>span:not(.spacer){font-size:11.5px;font-weight:600;color:var(--good);background:var(--good-soft);border-radius:999px;padding:1px 8px}
+.pg{max-width:92%;border-radius:14px;padding:9px 12px;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
+.pg i{display:block;font-style:normal;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand);margin-bottom:2px}
+.pg.att{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.pg.me{align-self:flex-end;background:var(--brand);color:var(--brand-fg);border-bottom-right-radius:4px}
+.chips button[disabled]{opacity:.45;cursor:not-allowed}
 
 .reveal{display:flex;flex-direction:column;gap:16px}
 .reveal ul{margin:0;padding-left:18px} .reveal li{margin:4px 0}

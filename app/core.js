@@ -48,7 +48,7 @@ var cases = [], cur = -1, view = 'coach';
 var up = { files:[], text:'', mode:'each', groups:'' };
 var MAXIMG = 20;
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML.replace(/"/g,'&quot;'); }
-function fresh(){ return { i:0, sel:{}, first:{}, cross:{}, ruled:{}, other:{}, otherOpen:{}, solved:false, otherFb:{}, otherBusy:{} }; }
+function fresh(){ return { i:0, sel:{}, first:{}, cross:{}, ruled:{}, other:{}, otherOpen:{}, solved:false, otherFb:{}, otherBusy:{}, pages:{}, pageOpen:{} }; }
 function lsGet(k, d){ try { var v = JSON.parse(localStorage.getItem(k)); return v==null ? d : v; } catch(e){ return d; } }
 function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
 function today(){ var d = new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
@@ -294,6 +294,32 @@ async function ask(c, q){
   if (cases[cur]===c) renderStage();
   persist();
 }
+async function pageAttending(c, i, msg){
+  var st = c.st, s = c.steps[i]; if (!s || c.pageBusy) return;
+  st.pages = st.pages || {}; var th = st.pages[i] = st.pages[i] || [];
+  var level = th.filter(function(m){ return m.role==='assistant'; }).length;
+  th.push({ role:'user', content:msg }); c.pageBusy = true; c.pageLive = ''; renderStage();
+  var picked = st.sel[i]!==undefined ? s.opts[st.sel[i]] : null;
+  var rules = 'You are the attending physician on a teaching service. A medical student working through an exam question one step at a time is stuck on a step and has paged you. Reply like a short page back: 2 to 4 plain sentences, warm and direct, no greeting, no markdown, no lists.\n'
+    + 'NEVER name the diagnosis, the correct answer choice, or which option of this step is right. The student must still make the decision.\n'
+    + (level===0 ? 'This is the first page on this step: point to the exact finding in the stem to look at again and ask one guiding question.'
+      : level===1 ? 'This is the second page on this step: explain the concept this step is testing in plain language, then say what one of the wrong options would look like instead.'
+      : 'The student has paged several times: teach the concept directly and rule out one wrong option of this step with the stem clue that kills it. Still do not say which option is right.') + '\n'
+    + SPELL[REGION] + ' No em dashes or semicolons.\n\n' + ctxText(c)
+    + '\nCurrent step asks: ' + s.q + '\nOptions on this step: ' + s.opts.map(function(o){ return o.t; }).join(' | ')
+    + (picked ? '\nThe student last picked: ' + picked.t + ' (' + (picked.v==='good' ? 'which is right' : 'which is not right') + ')' : '\nThe student has not picked yet.');
+  var turns = [{ role:'user', content:rules + '\n\nStudent page: ' + th[0].content }].concat(th.slice(1).slice(-6));
+  if (turns.length > 1 && turns[turns.length-1].role !== 'user') turns.push({ role:'user', content:msg });
+  try {
+    var r = await sample(turns, { modelTier:'default', onText:function(u){
+      c.pageLive = u.text; var el = document.getElementById('pageLive'); if (el && cases[cur]===c && c.st.i===i){ el.hidden = false; el.lastChild.textContent = u.text; }
+    }});
+    th.push({ role:'assistant', content:r.text.trim() });
+  } catch(e){ th.push({ role:'assistant', content:'The page did not go through. Try again in a moment.' }); }
+  c.pageBusy = false; c.pageLive = '';
+  if (cases[cur]===c) renderStage();
+  persist();
+}
 function markRuled(c, i, k, toggle){
   var s = c.steps[i], st = c.st; if (!s || !(s.type==='final'||s.kind2==='elim')) return false;
   var o = s.opts[k]; if (!o || o.v!=='good') return false;
@@ -326,7 +352,7 @@ async function moreHelp(c){
   c.helpBusy = false;
   if (!add.length){ st.otherFb[f] = 'Could not write more steps right now. Try again in a moment.'; renderStage(); return; }
   add = add.slice(0, 3);
-  ['sel','first','cross','other','otherOpen','otherFb','otherBusy'].forEach(function(key){
+  ['sel','first','cross','other','otherOpen','otherFb','otherBusy','pages','pageOpen'].forEach(function(key){
     var m = st[key]; if (!m) return; var nm = {};
     Object.keys(m).forEach(function(k){ var n = +k; nm[n >= f ? n + add.length : n] = m[k]; });
     st[key] = nm;
