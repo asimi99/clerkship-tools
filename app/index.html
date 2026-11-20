@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Senior Resident</title>
+<meta name="description" content="A reasoning coach for board-style questions. It walks you to the answer one decision at a time.">
+<link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="app.css?v=1">
+</head>
+<body>
+<header class="top" id="top"></header>
+<div class="wrap">
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Questions" hidden></nav>
+  <div id="stage"></div>
+</div>
+<div class="zoom" id="zoom" hidden><img id="zoomImg" alt="Your screenshot, enlarged"></div>
+<div class="modal" id="modal" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../config.js?v=1"></script>
+<script src="core.js?v=1"></script>
+<script src="ui.js?v=1"></script>
+</body>
+</html>

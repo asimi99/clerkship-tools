@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Senior Resident: Qbank Reasoning Coach",
+  "short_name": "Senior Resident",
+  "version": "1.0.0",
+  "description": "A senior resident beside your question bank. It reads the question you are on and walks you to the answer one decision at a time.",
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" },
+  "action": { "default_title": "Senior Resident (Alt+S)" },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.uworld.com/*", "https://*.amboss.com/*", "https://*.nbme.org/*", "https://*.starttest.com/*",
+        "https://*.kaptest.com/*", "https://*.truelearn.com/*", "https://*.truelearn.net/*", "https://*.roshreview.com/*",
+        "https://*.boardvitals.com/*", "https://*.canadaqbank.com/*", "https://*.lecturio.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "toggle-panel": { "suggested_key": { "default": "Alt+S" }, "description": "Show or hide Senior Resident" },
+    "coach-question": { "suggested_key": { "default": "Alt+C" }, "description": "Coach the question on screen" }
+  },
+  "minimum_chrome_version": "116",
+  "permissions": ["sidePanel", "offscreen", "activeTab", "scripting", "storage"],
+  "side_panel": { "default_path": "panel.html" },
+  "host_permissions": [
+    "https://*.uworld.com/*", "https://*.amboss.com/*", "https://*.nbme.org/*", "https://*.starttest.com/*",
+    "https://*.kaptest.com/*", "https://*.truelearn.com/*", "https://*.truelearn.net/*", "https://*.roshreview.com/*",
+    "https://*.boardvitals.com/*", "https://*.canadaqbank.com/*", "https://*.lecturio.com/*"
+  ]
+}

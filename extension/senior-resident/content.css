@@ -1,0 +1,14 @@
+#sr-tab{position:fixed;right:0;top:45%;z-index:2147483646;display:flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;color:#fff;background:linear-gradient(180deg,#2f7ee0,#1a5fb4);box-shadow:-2px 2px 12px rgba(15,31,51,.25);font:600 12.5px/1 Inter,system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.04em;padding:12px 7px;transition:transform .28s ease,background .15s,opacity .2s;writing-mode:vertical-rl;transform:rotate(180deg);border-radius:0 9px 9px 0;margin:0}
+#sr-tab:hover{filter:brightness(1.08)}
+#sr-tab svg{width:14px;height:14px;transform:rotate(180deg);flex:none}
+#sr-tab .sr-arrow{display:none;font:600 15px/1 system-ui,sans-serif;writing-mode:horizontal-tb}
+#sr-tab.open{writing-mode:horizontal-tb;transform:none;border-radius:8px 0 0 8px;padding:9px 3px 9px 5px;background:rgba(26,95,180,.4);box-shadow:none;opacity:.75}
+#sr-tab.open:hover{background:rgba(26,95,180,.9);opacity:1;filter:none}
+#sr-tab.open .sr-label,#sr-tab.open svg{display:none}
+#sr-tab.open .sr-arrow{display:block;transition:transform .2s}
+#sr-tab.open:hover .sr-arrow{transform:translateX(3px)}
+#sr-tab.closing{transform:translateX(100%)}
+#sr-tab.reading{background:#6f9fd6}
+#sr-tab.ready{animation:srpulse 1.2s ease-in-out infinite}
+@keyframes srpulse{0%,100%{box-shadow:0 0 0 0 rgba(47,126,224,.6)}50%{box-shadow:0 0 0 8px rgba(47,126,224,0)}}
+@media print{#sr-tab{display:none}}

@@ -1,0 +1,119 @@
+(function(){
+  if (window.top !== window || window.__srLoaded) return;
+  window.__srLoaded = true;
+
+  var SITES = [[/uworld\.com$/, 'UWorld'], [/amboss\.com$/, 'AMBOSS'], [/nbme\.org$|starttest\.com$/, 'NBME'], [/kaptest\.com$/, 'Kaplan'], [/truelearn\.(com|net)$/, 'TrueLearn'], [/roshreview\.com$/, 'Rosh Review'], [/boardvitals\.com$/, 'BoardVitals'], [/canadaqbank\.com$/, 'CanadaQBank'], [/lecturio\.com$/, 'Lecturio']];
+  var host = location.hostname, SRC = host.replace(/^www\./, '');
+  SITES.forEach(function(s){ if (s[0].test(host)) SRC = s[1]; });
+  var IS_UW = /uworld\.com$/.test(host);
+
+  var tab = document.createElement('button'); tab.id = 'sr-tab'; tab.type = 'button';
+  tab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11l7-6 7 6"/><path d="M5 19l7-6 7 6" opacity=".6"/></svg><span class="sr-label">Senior Resident</span><span class="sr-arrow" aria-hidden="true">&#8250;</span>';
+  tab.title = 'Senior Resident (Alt+S)';
+  document.documentElement.appendChild(tab);
+  var isOpen = false, bgState = 'idle';
+  function setOpen(v){ isOpen = v; tab.classList.remove('closing'); tab.classList.toggle('open', v); tab.title = v ? 'Close Senior Resident' : 'Senior Resident (Alt+S)'; }
+  function send(m, cb){ try { chrome.runtime.sendMessage(m, function(r){ void chrome.runtime.lastError; if (cb) cb(r); }); } catch(e){ if (cb) cb(null); } }
+  tab.addEventListener('click', function(){
+    if (isOpen){ tab.classList.add('closing'); send({ t: 'close' }); setTimeout(function(){ setOpen(false); }, 280); return; }
+    send({ t: 'open' }, function(r){ if (!r || !r.ok) tab.title = 'Click the Senior Resident icon in the toolbar to open'; });
+  });
+
+  function clean(t){ return (t || '').replace(/ /g, ' ').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim(); }
+  function hash(s){ var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return 'h' + (h >>> 0).toString(36); }
+  function visible(el){ var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }
+
+  /* UWorld: known layout */
+  function uwQid(){ var m = (document.body.innerText || '').match(/Question Id:?\s*(\d{3,7})/i); return m ? m[1] : ''; }
+  function uwStem(){ return document.querySelector('.question-content') || document.querySelector('#questionText') || document.querySelector('[class*="question-content"]') || document.querySelector('[id*="questionText"]'); }
+  function radioChoices(){
+    var out = [];
+    document.querySelectorAll('input[type=radio]').forEach(function(r){
+      var el = r, best = '';
+      for (var k = 0; k < 7 && el.parentElement; k++){
+        el = el.parentElement;
+        if (el.querySelectorAll('input[type=radio]').length > 1) break;
+        var t = clean(el.innerText); if (t.length > 1) best = t;
+      }
+      best = best.replace(/\s*\(\d{1,3}%\)\s*$/, '').replace(/\s*\n\s*/g, ' ');
+      if (best) out.push(best);
+    });
+    return out.map(function(t, i){ return /^[A-J][.)]\s/.test(t) ? t : String.fromCharCode(65 + i) + '. ' + t; });
+  }
+
+  /* Any other question bank: find the answer choices, then the block that holds them and the stem */
+  function choiceEls(){
+    var sets = ['input[type=radio]', '[role=radio]', '[role=option]', '[data-testid*="answer" i],[class*="answer-option" i],[class*="answerOption" i],[class*="answer-choice" i],[class*="AnswerChoice" i]'];
+    for (var i = 0; i < sets.length; i++){
+      var els = Array.prototype.filter.call(document.querySelectorAll(sets[i]), function(e){ return visible(e) || (e.parentElement && visible(e.parentElement)); });
+      if (els.length >= 3 && els.length <= 16) return els;
+    }
+    return [];
+  }
+  function questionBlock(){
+    var els = choiceEls(); if (!els.length) return null;
+    var anc = els[0];
+    while (anc && !els.every(function(e){ return anc.contains(e); })) anc = anc.parentElement;
+    for (var k = 0; anc && anc.parentElement && anc.parentElement !== document.documentElement && k < 8; k++){
+      var len = clean(anc.innerText).length, choicesLen = els.reduce(function(a, e){ return a + clean((e.closest('label,li,button,[role=radio],[role=option]') || e.parentElement || e).innerText).length; }, 0);
+      if (len - choicesLen > 220) break;
+      anc = anc.parentElement;
+    }
+    return anc;
+  }
+  function stemKey(){
+    if (IS_UW) return uwQid();
+    var b = questionBlock(); if (!b) return '';
+    var t = clean(b.innerText); return t.length > 120 ? hash(t.slice(0, 400)) : '';
+  }
+  async function images(el){
+    var list = [], imgs = el ? Array.prototype.slice.call(el.querySelectorAll('img')) : [];
+    for (var i = 0; i < imgs.length && list.length < 4; i++){
+      var im = imgs[i]; if ((im.naturalWidth || im.width) < 80 || (im.naturalHeight || im.height) < 60) continue;
+      try { var b = await (await fetch(im.currentSrc || im.src, { credentials: 'include' })).blob(); if (/^image\//.test(b.type)) list.push(b); } catch(e){}
+    }
+    return list;
+  }
+  async function grab(){
+    var sel = clean(String(window.getSelection ? window.getSelection() : ''));
+    if (sel.length > 80) return { qid: hash(sel.slice(0, 400)), src: SRC, text: sel.slice(0, 12000), images: [] };
+    if (IS_UW){
+      var el = uwStem();
+      if (el){ var ch = radioChoices(); return { qid: uwQid(), src: SRC, text: clean(el.innerText) + (ch.length ? '\n\nAnswer choices:\n' + ch.join('\n') : ''), images: await images(el) }; }
+    }
+    var b = questionBlock();
+    if (b){ var t = clean(b.innerText); if (t.length > 120) return { qid: hash(t.slice(0, 400)), src: SRC, text: t.slice(0, 12000), images: await images(b) }; }
+    return null;
+  }
+  function dataUrl(b){ return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result); }; r.readAsDataURL(b); }); }
+
+  chrome.runtime.onMessage.addListener(function(m, sender, reply){
+    if (m.t === 'ping'){ reply({ ok: true }); return; }
+    if (m.t === 'state'){ setOpen(!!m.open); if (m.open) setBg('idle'); }
+    if (m.t === 'bg') setBg(m.state);
+    if (m.t === 'grab'){
+      grab().then(async function(q){
+        if (!q){ reply({ text: '', src: SRC }); return; }
+        reply({ qid: q.qid, src: q.src, text: q.text, images: await Promise.all(q.images.map(dataUrl)) });
+      }, function(){ reply({ text: '', src: SRC }); });
+      return true;
+    }
+  });
+  function setBg(state){
+    bgState = state; tab.classList.toggle('reading', state === 'reading'); tab.classList.toggle('ready', state === 'ready');
+    tab.querySelector('.sr-label').textContent = state === 'reading' ? 'Reading…' : (state === 'ready' ? 'Ready' : 'Senior Resident');
+  }
+  function popIfReady(e){
+    if (isOpen || bgState !== 'ready' || (e && tab.contains(e.target))) return;
+    setBg('idle'); send({ t: 'open' });
+  }
+  document.addEventListener('click', popIfReady, true);
+  document.addEventListener('mouseup', popIfReady, true);
+  document.addEventListener('keydown', popIfReady, true);
+
+  var last = '', tmr = null;
+  function check(){ var id = stemKey(); if (id && id !== last){ last = id; send({ t: 'newq', qid: id }); } }
+  new MutationObserver(function(){ if (!tmr) tmr = setTimeout(function(){ tmr = null; check(); }, IS_UW ? 250 : 700); }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  setInterval(check, IS_UW ? 1500 : 2500);
+  send({ t: 'hello' }, function(r){ if (r && r.open) setOpen(true); });
+})();

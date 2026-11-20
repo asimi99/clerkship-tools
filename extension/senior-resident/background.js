@@ -1,0 +1,92 @@
+var panelPort = null, wantGrab = false, bgBusy = '', bgReady = '';
+
+function notifyTabs(msg){
+  chrome.tabs.query({}, function(tabs){ (tabs || []).forEach(function(t){ chrome.tabs.sendMessage(t.id, msg).catch(function(){}); }); });
+}
+function openPanel(windowId){ try { return chrome.sidePanel.open({ windowId: windowId }); } catch(e){ return Promise.reject(e); } }
+function closePanel(windowId){
+  if (panelPort){ try { panelPort.postMessage({ t: 'close' }); } catch(e){} }
+  chrome.runtime.sendMessage({ t: 'panel-close' }).catch(function(){});
+  if (chrome.sidePanel.close && windowId != null) chrome.sidePanel.close({ windowId: windowId }).catch(function(){});
+}
+async function ensureOffscreen(){
+  if (await chrome.offscreen.hasDocument()) return;
+  await chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['IFRAME_SCRIPTING'], justification: 'Prepares the coaching for the question on screen so it is ready when the panel opens.' });
+}
+async function closeOffscreen(){ try { if (await chrome.offscreen.hasDocument()) await chrome.offscreen.closeDocument(); } catch(e){} }
+async function autoOn(){ try { var r = await chrome.storage.local.get({ auto: true }); return r.auto !== false; } catch(e){ return true; } }
+async function inject(tabId){
+  try {
+    await chrome.scripting.insertCSS({ target: { tabId: tabId }, files: ['content.css'] });
+    await chrome.scripting.executeScript({ target: { tabId: tabId }, files: ['content.js'] });
+    return true;
+  } catch(e){ return false; }
+}
+async function ask(tabId){
+  try { return await chrome.tabs.sendMessage(tabId, { t: 'grab' }); }
+  catch(e){ if (await inject(tabId)){ try { return await chrome.tabs.sendMessage(tabId, { t: 'grab' }); } catch(e2){} } }
+  return null;
+}
+async function shot(windowId){ try { return await chrome.tabs.captureVisibleTab(windowId, { format: 'jpeg', quality: 82 }); } catch(e){ return ''; } }
+
+async function bgCoach(tabId, qid){
+  if (panelPort || !qid || qid === bgBusy || qid === bgReady || !(await autoOn())) return;
+  bgBusy = qid; bgReady = '';
+  notifyTabs({ t: 'bg', state: 'reading', qid: qid });
+  var q = await ask(tabId);
+  if (!q || !q.text){ bgBusy = ''; notifyTabs({ t: 'bg', state: 'idle' }); return; }
+  try { await ensureOffscreen(); } catch(e){ bgBusy = ''; notifyTabs({ t: 'bg', state: 'idle' }); return; }
+  setTimeout(function(){ chrome.runtime.sendMessage({ t: 'bg-coach', q: q }).catch(function(){}); }, 50);
+  setTimeout(function(){ if (bgBusy === qid){ bgBusy = ''; notifyTabs({ t: 'bg', state: 'idle' }); } }, 120000);
+}
+
+chrome.runtime.onConnect.addListener(function(port){
+  if (port.name !== 'sr-panel') return;
+  panelPort = port; bgBusy = ''; bgReady = '';
+  closeOffscreen();
+  notifyTabs({ t: 'state', open: true });
+  if (wantGrab){ wantGrab = false; port.postMessage({ t: 'grab' }); }
+  port.onDisconnect.addListener(function(){ if (panelPort === port) panelPort = null; notifyTabs({ t: 'state', open: false }); });
+});
+
+chrome.runtime.onMessage.addListener(function(m, sender, reply){
+  if (m.t === 'hello'){ reply({ open: !!panelPort }); return; }
+  if (m.t === 'open'){
+    openPanel(sender.tab.windowId).then(function(){ reply({ ok: true }); }, function(e){ reply({ ok: false, err: String(e) }); });
+    return true;
+  }
+  if (m.t === 'close'){ closePanel(sender.tab && sender.tab.windowId); return; }
+  if (m.t === 'newq'){
+    if (panelPort) autoOn().then(function(on){ if (on && panelPort) panelPort.postMessage({ t: 'newq', qid: m.qid }); });
+    else if (sender.tab) bgCoach(sender.tab.id, m.qid);
+    return;
+  }
+  if (m.t === 'bg-done'){
+    if (panelPort) return;
+    bgBusy = ''; bgReady = m.ok ? m.qid : ''; notifyTabs({ t: 'bg', state: m.ok ? 'ready' : 'idle', qid: m.qid });
+    return;
+  }
+  if (m.t === 'grab'){
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, async function(tabs){
+      var tab = (tabs || [])[0];
+      if (!tab){ reply({ err: 'Open a question first.' }); return; }
+      var q = await ask(tab.id);
+      if (q && q.text){ reply(q); return; }
+      if (m.manual){
+        var img = await shot(tab.windowId);
+        if (img){ reply({ qid: '', src: (q && q.src) || '', text: '', images: [img], shot: true }); return; }
+      }
+      reply({ err: q ? 'No question found on this page yet.' : 'Click the Senior Resident icon in the toolbar while the question is on screen.' });
+    });
+    return true;
+  }
+});
+
+function toggle(tab, grab){
+  if (panelPort && !grab){ closePanel(tab.windowId); return; }
+  if (grab){ if (panelPort) panelPort.postMessage({ t: 'grab' }); else wantGrab = true; }
+  openPanel(tab.windowId).catch(function(){});
+  chrome.tabs.sendMessage(tab.id, { t: 'ping' }).catch(function(){ inject(tab.id); });
+}
+chrome.action.onClicked.addListener(function(tab){ toggle(tab, false); });
+chrome.commands.onCommand.addListener(function(cmd, tab){ if (tab) toggle(tab, cmd === 'coach-question'); });
