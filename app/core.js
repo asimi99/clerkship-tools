@@ -194,7 +194,7 @@ function proc(c, line){
   progress(c);
 }
 function newCase(o){
-  return Object.assign({ id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:'', qid:'', src:'', files:[], text:'', level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false, queued:false, ts:Date.now() }, o);
+  return Object.assign({ id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:'', qid:'', num:'', src:'', files:[], text:'', level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false, queued:false, ts:Date.now() }, o);
 }
 async function gen(c){
   if (!canStart()){ c.error = { code:'rate_limited' }; c.generating = false; if (cases[cur]===c) renderStage(); done(c); return; }
@@ -375,7 +375,7 @@ async function persistNow(){
   for (var i=0;i<keep.length;i++){
     var c = keep[i];
     if (!c.filesData) c.filesData = await Promise.all((c.files||[]).map(function(f){ return b64(f.blob); }));
-    out.push({ id:c.id, title:c.title, qid:c.qid, src:c.src, text:c.text, level:c.level, meta:c.meta, steps:c.steps, reveal:c.reveal, st:c.st, chat:c.chat, error:c.error, generating:c.generating, saved:c.saved, tries:c.tries, ts:c.ts, filesData:c.filesData });
+    out.push({ id:c.id, title:c.title, qid:c.qid, num:c.num, src:c.src, text:c.text, level:c.level, meta:c.meta, steps:c.steps, reveal:c.reveal, st:c.st, chat:c.chat, error:c.error, generating:c.generating, saved:c.saved, tries:c.tries, ts:c.ts, filesData:c.filesData });
   }
   var j; try { j = JSON.stringify({ cur: cases[cur] ? cases[cur].id : '', cases: out }); } catch(e){ return; }
   if (j === lastSaved) return;

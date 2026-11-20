@@ -33,12 +33,13 @@ function renderTop(){
     + '</nav>';
 }
 window.onPlan = function(){ renderTop(); if (view==='account') renderStage(); };
+function tabLabel(c){ if (c.num) return 'Q' + c.num; if (c.qid && !/^h/.test(c.qid)) return 'Q' + c.qid; return c.title || (c.queued ? 'Queued' : 'Reading'); }
 function renderTabs(){
   if (view!=='coach' || !cases.length){ tabsEl.innerHTML = ''; tabsEl.hidden = true; return; }
   tabsEl.hidden = false;
   tabsEl.innerHTML = cases.map(function(c,k){
     var state = c.st.solved ? 'done' : (c.generating || c.queued ? 'busy' : '');
-    return '<button type="button" class="tab '+state+'" role="tab" aria-selected="'+(k===cur)+'" data-case="'+k+'"><i></i><span>'+esc(c.title||(c.queued?'Queued':'Reading'))+'</span></button>';
+    return '<button type="button" class="tab '+state+'" role="tab" aria-selected="'+(k===cur)+'" data-case="'+k+'"><i></i><span>'+esc(tabLabel(c))+'</span></button>';
   }).join('');
   var a = tabsEl.querySelector('[aria-selected="true"]'); if (a && a.scrollIntoView) a.scrollIntoView({ block:'nearest', inline:'nearest' });
 }
@@ -182,7 +183,7 @@ function cardHTML(c){
   return h + '</div>';
 }
 function caseHTML(c){
-  var src = [c.src, c.qid && !/^h/.test(c.qid) ? 'Q '+c.qid : ''].filter(Boolean).join(' · ');
+  var src = [c.src, c.num ? 'Q'+c.num : '', c.qid && !/^h/.test(c.qid) ? 'ID '+c.qid : ''].filter(Boolean).join(' · ');
   return '<div class="qhead">'+(src?'<span class="src">'+esc(src)+'</span>':'')+'<span class="lv">'+esc((LEVELS.filter(function(l){return l[0]===(c.level||LEVEL)})[0]||LEVELS[0])[1])+'</span><span class="spacer"></span><button type="button" class="lnk" data-act="closecase">Close</button></div>'
     + stemHTML(c) + '<div class="bar" id="bar" aria-hidden="true">'+barHTML(c)+'</div><main class="card" id="card">'+cardHTML(c)+'</main>';
 }
@@ -464,10 +465,10 @@ window.addEventListener('message', async function(e){
   statusMsg = '';
   if (d.qid){
     var ex = cases.findIndex(function(c){ return c.qid===d.qid; });
-    if (ex>=0){ view = 'coach'; cur = ex; renderAll(); if (!cases[ex].generating) done(cases[ex]); return; }
+    if (ex>=0){ if (d.num) cases[ex].num = String(d.num); view = 'coach'; cur = ex; renderAll(); if (!cases[ex].generating) done(cases[ex]); return; }
   }
   var files = (d.images||[]).slice(0, 4).map(function(b){ return { blob:b, url:URL.createObjectURL(b) }; });
-  var c = newCase({ qid:d.qid||'', src:d.src||'', files:files, text:d.text||'' });
+  var c = newCase({ qid:d.qid||'', num:String(d.num||''), src:d.src||'', files:files, text:d.text||'' });
   cases.push(c); view = 'coach'; cur = cases.length-1; renderAll(); window.scrollTo({top:0});
   await gen(c);
 });

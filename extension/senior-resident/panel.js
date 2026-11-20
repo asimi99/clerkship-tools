@@ -19,8 +19,8 @@
     chrome.runtime.sendMessage({ t: 'grab', manual: !!manual }, function(q){
       if (chrome.runtime.lastError || !q){ say('Could not reach the page. Refresh it once.'); return; }
       if (q.err){ say(manual ? q.err : ''); return; }
-      msg.textContent = (q.src || 'Question') + (q.qid && !/^h/.test(q.qid) ? ' · Q ' + q.qid : '') + (q.shot ? ' · from a screenshot' : '');
-      toCoach({ type: 'sr-question', qid: q.qid, src: q.src, text: q.text, images: (q.images || []).map(blob) });
+      msg.textContent = (q.src || 'Question') + (q.num ? ' · Q' + q.num : '') + (q.qid && !/^h/.test(q.qid) ? ' · ID ' + q.qid : '') + (q.shot ? ' · from a screenshot' : '');
+      toCoach({ type: 'sr-question', qid: q.qid, num: q.num || '', src: q.src, text: q.text, images: (q.images || []).map(blob) });
     });
   }
   setTimeout(function(){ doGrab(false); }, 300);
