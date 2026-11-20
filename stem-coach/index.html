@@ -344,7 +344,7 @@ function uploadHTML(){
   return h;
 }
 
-function progressTotal(c){ return Math.min(5, Math.max((c.meta&&+c.meta.stepCount)||5, c.steps.length)); }
+function progressTotal(c){ return Math.max(c.steps.length, Math.min(5, (c.meta&&+c.meta.stepCount)||5)); }
 function barHTML(c){
   var n = progressTotal(c), h='';
   for (var k=0;k<n;k++) h += '<i class="'+(k<c.st.i||c.st.solved?'done':(k===c.st.i?'now':''))+'"></i>';
@@ -437,6 +437,7 @@ function cardHTML(c){
   }
   h += '<div class="row"><button type="button" class="btn ghost" data-act="back"'+(i===0?' disabled':'')+'>Back</button><span class="spacer"></span>';
   if (s.type==='final'){
+    if (!st.solved) h += c.helpBusy ? '<span class="muted" style="font-size:14px">Writing more steps</span>' : '<button type="button" class="btn" data-act="morehelp">Need more help</button>';
     h += '<button type="button" class="btn ghost" data-act="restart">Start this question over</button>';
   } else {
     var can = st.sel[i]!==undefined || (st.other[i]&&st.other[i].saved);
@@ -540,6 +541,41 @@ function markRuled(c, i, k, toggle){
   var rk = String(o.t||'').trim().toLowerCase(); st.ruled = st.ruled || {};
   st.ruled[rk] = toggle ? !st.ruled[rk] : true; return true;
 }
+async function moreHelp(c){
+  if (c.helpBusy) return;
+  var st = c.st, f = c.steps.findIndex(function(x){ return x.type==='final'; }); if (f<0) return;
+  var left = c.steps[f].opts.map(function(o){ return o.t; });
+  var done = c.steps.slice(0, f).map(function(x){ return x.q; }).filter(Boolean);
+  c.helpBusy = true; renderStage();
+  var prompt = 'You are a clinical reasoning coach. A student is stuck choosing between the last answer choices of a question.\n' + ctxText(c)
+    + '\nChoices still in play: ' + left.join(' | ')
+    + '\nSteps already asked (do not repeat them or ask the same thing in other words): ' + (done.join(' | ') || 'none')
+    + '\n\nWrite 2 new reasoning steps that help the student separate ONLY these remaining choices, each built on a different clue from the stem (a discriminating finding, timing, a lab value, a contraindication or what each choice would predict). NEVER name the answer, the diagnosis or which choice is right.'
+    + '\nOutput JSON Lines only, one object per line, no other text: {"kind":"step","type":"single","q":"question","sub":"one short hint","opts":[{"t":"option","v":"good","fb":"feedback"},{"t":"option","v":"warn","fb":"feedback"},{"t":"option","v":"bad","fb":"feedback"}]}'
+    + '\nExactly 3 options per step, one good. Feedback is 1 or 2 sentences pointing to a specific stem clue. Canadian spelling. No em dashes or semicolons.';
+  var add = [];
+  try {
+    var r = await sample(prompt, { modelTier:'default', cache:false });
+    r.text.split('\n').forEach(function(l){
+      l = l.trim(); if (l.charAt(0)!=='{') return;
+      try { var o = JSON.parse(l); } catch(e){ return; }
+      if (o.kind!=='step' || !o.q || !o.opts || o.opts.length < 2) return;
+      o.opts.forEach(function(x){ if (x.v!=='good' && x.v!=='warn' && x.v!=='bad') x.v = 'bad'; if (!x.fb) x.fb = ''; });
+      o.type = 'single'; o.kind2 = 'help'; add.push(o);
+    });
+  } catch(e){}
+  c.helpBusy = false;
+  if (!add.length){ st.otherFb[f] = 'Could not write more steps right now. Try again in a moment.'; renderStage(); return; }
+  add = add.slice(0, 3);
+  ['sel','cross','other','otherOpen','otherFb','otherBusy'].forEach(function(key){
+    var m = st[key]; if (!m) return; var nm = {};
+    Object.keys(m).forEach(function(k){ var n = +k; nm[n >= f ? n + add.length : n] = m[k]; });
+    st[key] = nm;
+  });
+  delete st.sel[f + add.length];
+  Array.prototype.splice.apply(c.steps, [f, 0].concat(add));
+  st.i = f; renderStage(); window.scrollTo({top:0});
+}
 /* ---------- actions ---------- */
 stage.addEventListener('contextmenu', function(e){
   var o = e.target.closest('.opt[data-act="pick"]'); var c = cases[cur]; if (!o || !c) return;
@@ -596,6 +632,8 @@ stage.addEventListener('click', async function(e){
     st.i++; renderStage(); window.scrollTo({top:0});
   } else if (act==='back'){
     if (st.i>0){ st.i--; renderStage(); }
+  } else if (act==='morehelp'){
+    moreHelp(c2);
   } else if (act==='restart'){
     c2.st = fresh(); renderStage(); window.scrollTo({top:0});
   } else if (act==='stop'){
