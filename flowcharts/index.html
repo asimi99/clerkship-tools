@@ -57,6 +57,7 @@ mark{background:#fff2a8;color:inherit;border-radius:2px}
 .cmp thead th{font-size:14.5px;color:var(--tc);background:var(--ts);border-bottom:2px solid var(--tc)}
 .cmp tbody th{font-size:13px;width:140px;background:var(--bg)}
 .cmp tr:last-child td,.cmp tr:last-child th{border-bottom:0}
+.fc-im{margin-top:18px;display:grid;gap:14px}.fc-im h3{font-size:15.5px;color:var(--tc);margin:0 0 8px}.fc-im .row{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.fc-im figure{margin:0;border:1px solid var(--line);border-top:4px solid var(--tc);border-radius:8px;background:#fff;padding:6px;display:grid;gap:4px}.fc-im img{width:100%;height:auto;display:block;border-radius:4px;cursor:zoom-in}.fc-im figcaption{font-size:12.5px;color:#333;line-height:1.35}
 .fc-keys{display:grid;border-top:1px solid var(--line);margin-top:18px}
 .fc-keys div{display:grid;grid-template-columns:180px minmax(0,1fr);gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
 .pager{display:flex;justify-content:space-between;gap:12px;margin-top:22px;font-size:14px}.pager a{text-decoration:none}
@@ -65,7 +66,7 @@ mark{background:#fff2a8;color:inherit;border-radius:2px}
 </head>
 <body>
 <div class="wrap" id="app"></div>
-<script src="https://asimi99.github.io/peds-shelf/cs.js?v=2"></script>
+<script src="https://asimi99.github.io/peds-shelf/cs.js?v=3"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="../config.js?v=3"></script>
 <script src="../auth.js?v=3"></script>
@@ -118,7 +119,8 @@ function sheet(x,h){
   var cmp = h.cmp ? '<div class="cmpw"><table class="cmp"><thead><tr><th></th>'+h.cmp.h.map(function(c,i){ return '<th class="t-'+h.cmp.t[i]+'">'+esc(c)+'</th>'; }).join('')+'</tr></thead><tbody>'+h.cmp.r.map(function(r){ return '<tr><th>'+esc(r[0])+'</th>'+r.slice(1).map(function(c){ return '<td>'+rich(c)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>' : '';
   app.innerHTML = '<div class="sheet"><p class="crumb"><a href="#">Peds Flowcharts</a> · '+esc(x.name)+'</p><h1>'+esc(h.t)+'</h1>'
     + '<div class="fc">'+(h.q?'<div class="fc-root">'+rich(h.q)+'</div>':'')+cmp+'<div class="fc-br'+(h.q&&h.g.length>1?'':' one')+'">'+h.g.map(col).join('')+'</div>'
-    + (h.k&&h.k.length?'<div class="fc-keys">'+h.k.map(function(k){ return '<div><b>'+esc(k[0])+'</b><span>'+rich(k[1])+'</span></div>'; }).join('')+'</div>':'')+'</div>'
+    + (h.k&&h.k.length?'<div class="fc-keys">'+h.k.map(function(k){ return '<div><b>'+esc(k[0])+'</b><span>'+rich(k[1])+'</span></div>'; }).join('')+'</div>':'')
+    + (h.im?'<div class="fc-im">'+h.im.map(function(m){ return '<div class="t-'+(m.c||'a')+'"><h3>'+esc(m.h)+'</h3><div class="row">'+m.s.map(function(x){ return '<figure><a href="'+x[0]+'" target="_blank" rel="noopener"><img loading="lazy" src="'+x[0]+'" alt="'+esc(x[1])+'"></a><figcaption>'+esc(x[1])+'</figcaption></figure>'; }).join('')+'</div></div>'; }).join('')+'</div>':'')+'</div>'
     + '<nav class="pager">'+(prev?'<a href="#'+x.id+'-'+prev.id+'">← '+esc(prev.t)+'</a>':'<span></span>')+(next?'<a href="#'+x.id+'-'+next.id+'">'+esc(next.t)+' →</a>':'<span></span>')+'</nav></div>';
 }
 function route(){
