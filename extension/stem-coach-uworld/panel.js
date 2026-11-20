@@ -12,17 +12,18 @@ document.getElementById('coach').src = 'https://asimi99.github.io/clerkship-tool
     chrome.runtime.sendMessage({ t: 'grab' }, function(q){
       if (chrome.runtime.lastError || !q){ say('Could not reach the UWorld tab. Refresh it once.'); return; }
       if (q.err){ say(q.err); return; }
-      if (!q.text){ say('No question found. Open a question, or highlight the stem and try again.'); return; }
+      if (!q.text){ say('Open a UWorld question and it starts on its own.'); return; }
       say(q.qid ? 'Coaching Q ' + q.qid : 'Coaching your selection');
       toCoach({ type: 'sc-question', qid: q.qid, text: q.text, images: (q.images || []).map(blob) });
     });
   }
   grab.addEventListener('click', doGrab);
+  setTimeout(doGrab, 300);
   document.getElementById('hide').addEventListener('click', function(){ window.close(); });
   port.onMessage.addListener(function(m){
     if (m.t === 'close') window.close();
     if (m.t === 'grab') doGrab();
-    if (m.t === 'newq'){ say('New question on screen: Q ' + m.qid); grab.classList.add('pulse'); }
+    if (m.t === 'newq'){ clearTimeout(window.__scT); window.__scT = setTimeout(doGrab, 450); }
   });
   window.addEventListener('message', function(e){
     if (e.source === coach.contentWindow && e.origin === COACH && (e.data || {}).type === 'sc-ready'){

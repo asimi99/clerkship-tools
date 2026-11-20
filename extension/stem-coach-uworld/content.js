@@ -60,9 +60,8 @@
       return true;
     }
   });
-  var last = '';
-  setInterval(function(){
-    var id = qid();
-    if (id && id !== last){ last = id; if (isOpen) chrome.runtime.sendMessage({ t: 'newq', qid: id }).catch(function(){}); }
-  }, 1500);
+  var last = qid(), tmr = null;
+  function check(){ var id = qid(); if (id && id !== last){ last = id; if (isOpen) chrome.runtime.sendMessage({ t: 'newq', qid: id }).catch(function(){}); } }
+  new MutationObserver(function(){ if (!tmr) tmr = setTimeout(function(){ tmr = null; check(); }, 250); }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  setInterval(check, 1500);
 })();
