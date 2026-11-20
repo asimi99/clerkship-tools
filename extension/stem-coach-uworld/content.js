@@ -11,13 +11,15 @@
   var tab = document.createElement('button'); tab.id = 'sc-tab'; tab.type = 'button'; tab.textContent = 'Stem Coach';
   document.documentElement.appendChild(root); document.documentElement.appendChild(tab);
 
-  function show(v){ root.hidden = !v; tab.hidden = v; }
+  var pushCss = document.createElement('style'); pushCss.id = 'sc-push'; document.documentElement.appendChild(pushCss);
+  function push(){ pushCss.textContent = root.hidden ? '' : 'html{overflow:hidden!important}body{width:calc(100vw - ' + (W + 8) + 'px)!important;max-width:none!important;height:100vh!important;margin:0!important;overflow:auto!important;transform:translateZ(0)}'; window.dispatchEvent(new Event('resize')); }
+  function show(v){ root.hidden = !v; tab.hidden = v; push(); }
   tab.addEventListener('click', function(){ show(true); });
 
   var drag = root.querySelector('#sc-drag');
   drag.addEventListener('mousedown', function(e){
     e.preventDefault(); frame.style.pointerEvents = 'none';
-    function mv(ev){ W = Math.max(320, Math.min(window.innerWidth - 200, window.innerWidth - ev.clientX)); frame.style.width = W + 'px'; }
+    function mv(ev){ W = Math.max(320, Math.min(window.innerWidth - 200, window.innerWidth - ev.clientX)); frame.style.width = W + 'px'; push(); }
     function up(){ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); frame.style.pointerEvents = ''; try { localStorage.setItem('sc_panel_w', W); } catch(e){} }
     document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
   });

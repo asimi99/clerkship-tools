@@ -178,16 +178,16 @@ function fbHtml(cls, text, lab){ return '<div class="fb '+cls+'"><b>'+esc(lab||L
 
 var RULES = [
 'You are a clinical reasoning coach for a medical student. The attached image(s) and any typed text hold ONE exam-style question (board or textbook). Read all of it, including every lab value and every answer choice. Ignore any selections, crossouts and highlights the student already made on it.',
-'Build a coaching session that walks the student to the answer one decision at a time. NEVER state the answer, the diagnosis or the correct choice before the final step.',
+'Build a coaching session that walks the student to the answer one decision at a time. NEVER ask the student which choice is the answer, and NEVER state the answer, the diagnosis or the correct choice before the reveal. The student reaches the answer by ruling everything else out.',
 'OUTPUT FORMAT: JSON Lines only. One JSON object per line, no line breaks inside an object, no markdown, no code fences, no text outside the JSON. Write these lines in this exact order.',
-'LINE 1: {"kind":"meta","title":"short tab label such as 9 years, recurrent vomiting","stemSummary":"plain summary of the stem with every key finding and lab, under 150 words","options":["A. ...","B. ..."],"optionsFromImage":true,"stepCount":7}',
-'LINES 2 to 5 or 6, the reasoning steps: {"kind":"step","type":"single","q":"question","sub":"one short hint","opts":[{"t":"option","v":"good","fb":"feedback"},{"t":"option","v":"warn","fb":"feedback"},{"t":"option","v":"bad","fb":"feedback"}]}',
+'LINE 1: {"kind":"meta","title":"short tab label such as 9 years, recurrent vomiting","stemSummary":"plain summary of the stem with every key finding and lab, under 150 words","options":["A. ...","B. ..."],"optionsFromImage":true,"stepCount":6}',
+'LINES 2 to 5, up to 4 reasoning steps: {"kind":"step","type":"single","q":"question","sub":"one short hint","opts":[{"t":"option","v":"good","fb":"feedback"},{"t":"option","v":"warn","fb":"feedback"},{"t":"option","v":"bad","fb":"feedback"}]}',
 'NEXT, one elimination step: {"kind":"step","type":"elim","opts":[{"t":"A. answer choice text","v":"good","fb":"Yes, eliminate it. reason"},{"t":"B. answer choice text","v":"warn","fb":"Keep it in play. reason"}]} with ONE entry for EVERY answer choice. v is good for the choices a careful reader can rule out from the stem alone, and warn for the ones that stay in play.',
-'NEXT, the final step: {"kind":"step","type":"final","q":"the question as asked","opts":[{"t":"A. answer choice text","v":"bad","fb":"why it is wrong, pointing to the stem"},{"t":"C. answer choice text","v":"good","fb":"why it is right, naming the stem clues that clinch it"}]} with ONE entry for EVERY answer choice, exactly one good.',
+'NEXT, the final step, a second elimination that leaves only the answer: {"kind":"step","type":"final","q":"Two choices are left. Which one does the stem rule out?","opts":[{"t":"B. strongest look-alike choice text","v":"good","fb":"Yes, rule it out. the exact stem clue that excludes it"},{"t":"C. correct answer choice text","v":"warn","fb":"Keep it in play. the stem clue it fits, without naming it as the answer"}]} with EXACTLY 2 entries: the strongest remaining look-alike (good) and the correct answer (warn). Never ask which choice is correct.',
 'LAST LINE: {"kind":"reveal","headline":"the answer and the diagnosis in one sentence","why":["3 to 5 bullets on why it fits"],"do":["2 to 4 bullets on what you do and what to watch for"],"table":{"cols":["","Typical picture","Next step"],"rows":[["Name of this condition","clue","step"],["Look-alike","clue","step"]],"me":0}} where me is the row index of the actual answer and the table has 3 to 5 look-alike rows.',
 'STEP RULES:',
-'1. 6 or 7 steps in total counting the elimination and final steps. Fixed order: how sick or how urgent, where the problem is, the mechanism, the finding that discriminates, how much weight a planted distractor deserves, eliminate, commit.',
-'2. Every step is a decision the student makes from the stem, never recall trivia. Do not name the diagnosis, the disease or the answer in any step question or any feedback before the final step.',
+'1. 6 steps at most in total, counting the elimination and final steps (so at most 4 reasoning steps). Order: how sick or how urgent, where the problem is or the mechanism, the finding that discriminates, how much weight a planted distractor deserves, eliminate, then the final rule-out. Drop the least useful reasoning step rather than go over 6.',
+'2. Every step is a decision the student makes from the stem, never recall trivia. Do not name the diagnosis, the disease or the answer in any step question or any feedback. It appears only in the reveal.',
 '3. Single steps have exactly 3 options, one good and two plausible wrong ones (bad or warn). Vary where the good option sits. Do not let the longest option be the right one.',
 '4. Feedback is 1 or 2 self-contained sentences that point back to a specific line of the stem. For a wrong option say what the stem shows instead. For a right option, teach: say exactly which clue makes it right and what that clue rules out or sets up next. Never give generic praise such as "on track", "good job" or "correct" on its own, and never leave fb empty.',
 '5. If the answer choices are not visible, write your own 5 choices, say so by setting optionsFromImage to false, and keep going.',
@@ -205,7 +205,7 @@ var LEVELS = [
 var LEVEL = 'guided'; try{ var lv=localStorage.getItem('sc_level'); if(lv && LEVELS.some(function(x){return x[0]===lv})) LEVEL=lv; }catch(e){}
 var LEVEL_RULES = {
  guided: '',
- harder: 'DIFFICULTY: HARDER. These rules override STEP RULES 1 and 3. Use 5 steps in total counting elimination and final: skip the how sick step unless urgency is the point of the question. Leave "sub" as an empty string on every step. In single steps all 3 options must be plausible to a strong student, with both wrong options being the classic look-alike or trap for this exact stem (v warn, not bad). Wrong-option feedback says which stem clue it misses but does not name the right option. Ask about the discriminating detail, not the obvious one.',
+ harder: 'DIFFICULTY: HARDER. These rules override STEP RULES 1 and 3. Use 5 steps in total counting elimination and final (3 reasoning steps): skip the how sick step unless urgency is the point of the question. Leave "sub" as an empty string on every step. In single steps all 3 options must be plausible to a strong student, with both wrong options being the classic look-alike or trap for this exact stem (v warn, not bad). Wrong-option feedback says which stem clue it misses but does not name the right option. Ask about the discriminating detail, not the obvious one.',
  hardest: 'DIFFICULTY: HARDEST. These rules override STEP RULES 1 and 3. Use 4 steps in total counting elimination and final, so only 2 single steps, and they start at the hardest decision in the stem (the discriminating finding and the distractor), never at triage or localisation. Leave "sub" as an empty string. Single steps have exactly 4 options, one good and three close look-alikes, all v warn, written so a student who only half knows the topic picks a wrong one. Wrong-option feedback says only what the stem contradicts, never which option is right. In the elimination step mark only the choices a top student can truly rule out as good.'
 };
 function buildPrompt(c){
@@ -224,6 +224,10 @@ function proc(c, line){
     o.opts = o.opts.filter(function(x){ var t = x && typeof x.t==='string' ? x.t.trim() : ''; return t.length > 3 && !/^(good|bad|warn|option|correct|incorrect|right|wrong)\.?$/i.test(t); });
     o.opts.forEach(function(x){ if (x.v!=='good' && x.v!=='warn' && x.v!=='bad') x.v = 'bad'; if (!x.fb) x.fb = ''; });
     if (o.opts.length < 2 || (o.type==='final' && !o.opts.some(function(x){ return x.v==='good'; }))) { progress(c); return; }
+    var nSingle = c.steps.filter(function(x){ return x.kind2==='single'; }).length, nElim = c.steps.filter(function(x){ return x.kind2==='elim'; }).length;
+    if (o.type==='final'){ if (c.steps.some(function(x){ return x.type==='final'; })) { progress(c); return; } o.opts = o.opts.slice(0, 3); o.opts.forEach(function(x){ x.lab = x.v==='good' ? 'Ruled out' : 'Keep in play'; if (x.v==='bad') x.v = 'warn'; }); o.q = o.q || 'Which of the choices left does the stem rule out?'; }
+    else if (o.type==='elim'){ if (nElim>=1) { progress(c); return; } o.kind2 = 'elim'; }
+    else { if (nSingle>=4) { progress(c); return; } o.kind2 = 'single'; }
     if (o.type==='elim'){
       o.q = 'Which answer choice can you eliminate first?';
       o.sub = 'Pick the one you are most sure the stem rules out.';
@@ -328,7 +332,7 @@ function uploadHTML(){
   return h;
 }
 
-function progressTotal(c){ return Math.max((c.meta&&+c.meta.stepCount)||7, c.steps.length); }
+function progressTotal(c){ return Math.min(6, Math.max((c.meta&&+c.meta.stepCount)||6, c.steps.length)); }
 function barHTML(c){
   var n = progressTotal(c), h='';
   for (var k=0;k<n;k++) h += '<i class="'+(k<c.st.i||c.st.solved?'done':(k===c.st.i?'now':''))+'"></i>';
@@ -409,7 +413,7 @@ function cardHTML(c){
   var p = st.sel[i];
   if (p!==undefined){
     var o = s.opts[p];
-    if (!(s.type==='final' && o.v==='good')) h += fbHtml(o.v==='good'?'good':(o.v==='warn'?'warn':'bad'), esc(o.fb), o.lab);
+    h += fbHtml(o.v==='good'?'good':(o.v==='warn'?'warn':'bad'), esc(o.fb), o.lab);
   }
   if (st.otherFb[i]) h += fbHtml('note', esc(st.otherFb[i]), 'On your reasoning');
   if (st.solved && s.type==='final'){
