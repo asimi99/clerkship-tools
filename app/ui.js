@@ -159,7 +159,7 @@ function cardHTML(c){
     if (c.error) return fbHtml('bad', esc(errCopy(c.error)), 'Could not continue') + '<div class="row"><button type="button" class="btn" data-act="retry">Try again</button></div>';
     if (c.stopped) return fbHtml('note','Stopped. Start again when you are ready.','Stopped') + '<div class="row"><button type="button" class="btn" data-act="retry">Try again</button></div>';
     if (c.queued) return waitHTML('Waiting for the questions before it');
-    if (!c.generating) return fbHtml('bad','The rest of this question did not come through.','Cut off') + '<div class="row"><button type="button" class="btn" data-act="retry">Try again</button></div>';
+    if (!c.generating) return fbHtml('note','This step is not ready yet.','One moment') + '<div class="row"><button type="button" class="btn" data-act="retry">Rebuild this question</button></div>';
     return (i===0 ? '<div class="skel"><i style="width:38%"></i><i style="width:92%"></i><i style="width:74%"></i><b></b><b></b><b></b></div>' : '')
       + waitHTML(i===0?'Reading the question':'Preparing the next step', true)
       + (i>0?'<div class="row"><button type="button" class="btn ghost" data-act="back">Back</button></div>':'');
@@ -328,6 +328,8 @@ function renderStage(){
   if (view==='account'){ stage.innerHTML = accountHTML(); mountGoogle(); return; }
   if (cur===-1 || !cases[cur]){ cur = -1; stage.innerHTML = uploadHTML(); return; }
   var c = cases[cur]; c.revealShown = false;
+  /* a question that has nothing yet and is not being built gets built, quietly, instead of showing an error */
+  if (!c.steps.length && !c.generating && !c.queued && !c.error && !c.stopped && (c.auto||0) < 2 && (c.text || c.files.length)){ c.auto = (c.auto||0) + 1; gen(c); return; }
   var keep = document.getElementById('chatTxt'), val = keep ? keep.value : '';
   stage.innerHTML = caseHTML(c);
   if (val){ var t = document.getElementById('chatTxt'); if (t) t.value = val; }

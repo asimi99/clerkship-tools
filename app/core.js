@@ -200,8 +200,9 @@ async function gen(c){
   if (!canStart()){ c.error = { code:'rate_limited' }; c.generating = false; if (cases[cur]===c) renderStage(); done(c); return; }
   c.generating = true; c.error = null; c.stopped = false;
   c.ctl = new AbortController();
+  if (cases[cur]===c) renderStage();
   var counted = false;
-  for (var attempt = 0; attempt < 3; attempt++){
+  for (var attempt = 0; attempt < 4; attempt++){
     var n = 0; c.error = null;
     if (attempt){ c.steps = []; c.meta = null; c.reveal = null; c.st = fresh(); if (cases[cur]===c) renderStage(); }
     try {
@@ -216,6 +217,7 @@ async function gen(c){
       if (e && e.code==='cancelled'){ c.stopped = true; break; }
       c.error = e || { code:'upstream_error' };
     }
+    if (!c.error && !c.steps.some(function(x){ return x.type==='final'; })) c.error = { code:'cut_off' };
     var retry = c.error && /^(upstream_error|empty|empty_completion|cut_off)$/.test(c.error.code);
     if (!retry) break;
     await new Promise(function(r){ setTimeout(r, 600 * (attempt + 1)); });
