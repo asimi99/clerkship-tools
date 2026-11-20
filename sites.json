@@ -1,0 +1,6 @@
+{
+ "v": 1,
+ "default": "auto",
+ "hosts": {},
+ "note": "Per-site switch for the extension. Modes: auto (reads new questions on its own), manual (reads only when the person clicks), off (does nothing on that site). Example: {\"hosts\":{\"example-qbank.com\":\"manual\"}}"
+}

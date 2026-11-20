@@ -92,6 +92,7 @@
     if (m.t === 'state'){ setOpen(!!m.open); if (m.open) setBg('idle'); }
     if (m.t === 'bg') setBg(m.state);
     if (m.t === 'grab'){
+      if (OFF){ reply({ text: '', src: SRC }); return; }
       grab().then(async function(q){
         if (!q){ reply({ text: '', src: SRC }); return; }
         reply({ qid: q.qid, src: q.src, text: q.text, images: await Promise.all(q.images.map(dataUrl)) });
@@ -111,10 +112,14 @@
   document.addEventListener('mouseup', popIfReady, true);
   document.addEventListener('keydown', popIfReady, true);
 
-  var last = '', tmr = null;
-  function check(){ var id = stemKey(); if (id && id !== last){ last = id; send({ t: 'newq', qid: id }); } }
+  var last = '', tmr = null, OFF = false, MANUAL = false;
+  function check(){ if (OFF || MANUAL) return; var id = stemKey(); if (id && id !== last){ last = id; send({ t: 'newq', qid: id }); } }
   new MutationObserver(function(){ if (!tmr) tmr = setTimeout(function(){ tmr = null; check(); }, IS_UW ? 250 : 700); }).observe(document.body, { childList: true, subtree: true, characterData: true });
   setInterval(check, IS_UW ? 1500 : 2500);
   setTimeout(check, 800);
-  send({ t: 'hello' }, function(r){ if (r && r.open) setOpen(true); });
+  send({ t: 'hello' }, function(r){
+    if (r && r.mode === 'off'){ OFF = true; tab.remove(); return; }
+    if (r && r.mode === 'manual') MANUAL = true;
+    if (r && r.open) setOpen(true);
+  });
 })();

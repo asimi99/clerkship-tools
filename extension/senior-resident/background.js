@@ -1,5 +1,24 @@
 var panelPort = null, wantGrab = false, bgBusy = '', bgReady = '';
 
+/* Per-site switch, published at SITES_URL: auto, manual (only on a click) or off. Lets a site be turned off for everyone without an update. */
+var SITES_URL = 'https://asimi99.github.io/senior-resident/sites.json';
+async function sites(){
+  var r = await chrome.storage.local.get({ sites: null, sitesAt: 0 });
+  if (Date.now() - r.sitesAt > 3 * 3600 * 1000){
+    try {
+      var j = await (await fetch(SITES_URL + '?t=' + Date.now(), { cache: 'no-store' })).json();
+      if (j && typeof j === 'object'){ r.sites = j; await chrome.storage.local.set({ sites: j, sitesAt: Date.now() }); }
+    } catch(e){ await chrome.storage.local.set({ sitesAt: Date.now() - 2.5 * 3600 * 1000 }); }
+  }
+  return r.sites || { default: 'auto', hosts: {} };
+}
+async function siteMode(url){
+  var host = ''; try { host = new URL(url).hostname; } catch(e){ return 'auto'; }
+  var s = await sites(), hosts = s.hosts || {}, best = '', mode = s.default || 'auto';
+  Object.keys(hosts).forEach(function(h){ if ((host === h || host.endsWith('.' + h)) && h.length > best.length){ best = h; mode = hosts[h]; } });
+  return /^(auto|manual|off)$/.test(mode) ? mode : 'auto';
+}
+
 function notifyTabs(msg){
   chrome.tabs.query({}, function(tabs){ (tabs || []).forEach(function(t){ chrome.tabs.sendMessage(t.id, msg).catch(function(){}); }); });
 }
@@ -31,6 +50,7 @@ async function shot(windowId){ try { return await chrome.tabs.captureVisibleTab(
 
 async function bgCoach(tabId, qid){
   if (panelPort || !qid || qid === bgBusy || qid === bgReady || !(await autoOn())) return;
+  try { if ((await siteMode((await chrome.tabs.get(tabId)).url || '')) !== 'auto') return; } catch(e){}
   bgBusy = qid; bgReady = '';
   notifyTabs({ t: 'bg', state: 'reading', qid: qid });
   var q = await ask(tabId);
@@ -50,14 +70,14 @@ chrome.runtime.onConnect.addListener(function(port){
 });
 
 chrome.runtime.onMessage.addListener(function(m, sender, reply){
-  if (m.t === 'hello'){ reply({ open: !!panelPort }); return; }
+  if (m.t === 'hello'){ siteMode((sender.tab && sender.tab.url) || sender.url || '').then(function(mode){ reply({ open: !!panelPort, mode: mode }); }); return true; }
   if (m.t === 'open'){
     openPanel(sender.tab.windowId).then(function(){ reply({ ok: true }); }, function(e){ reply({ ok: false, err: String(e) }); });
     return true;
   }
   if (m.t === 'close'){ closePanel(sender.tab && sender.tab.windowId); return; }
   if (m.t === 'newq'){
-    if (panelPort) autoOn().then(function(on){ if (on && panelPort) panelPort.postMessage({ t: 'newq', qid: m.qid }); });
+    if (panelPort) Promise.all([autoOn(), siteMode((sender.tab && sender.tab.url) || '')]).then(function(r){ if (r[0] && r[1] === 'auto' && panelPort) panelPort.postMessage({ t: 'newq', qid: m.qid }); });
     else if (sender.tab) bgCoach(sender.tab.id, m.qid);
     return;
   }
@@ -70,6 +90,9 @@ chrome.runtime.onMessage.addListener(function(m, sender, reply){
     chrome.tabs.query({ active: true, lastFocusedWindow: true }, async function(tabs){
       var tab = (tabs || [])[0];
       if (!tab){ reply({ err: 'Open a question first.' }); return; }
+      var mode = await siteMode(tab.url || '');
+      if (mode === 'off'){ reply({ err: 'Senior Resident is switched off on this site. Use a screenshot in the web app instead.' }); return; }
+      if (mode === 'manual' && !m.manual){ reply({ err: '' }); return; }
       var q = await ask(tab.id);
       if (q && q.text){ reply(q); return; }
       if (m.manual){

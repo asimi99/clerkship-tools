@@ -1,5 +1,5 @@
 // Supabase Edge Function "resident". Deploy with JWT verification OFF so people can try it before signing in.
-// Secrets: ANTHROPIC_API_KEY (required). Optional: BILLING_LIVE=true, FREE_DAILY, PRO_DAILY, EARLY_DAILY, MODEL_QUICK, MODEL_DEFAULT.
+// Secrets: ANTHROPIC_API_KEY (required). Optional: BILLING_LIVE=true, FREE_DAILY, PRO_DAILY, PRO_MONTHLY, EARLY_DAILY, MODEL_QUICK, MODEL_DEFAULT.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const CORS = {
@@ -9,8 +9,9 @@ const CORS = {
   "Access-Control-Expose-Headers": "x-sr-used, x-sr-limit, x-sr-plan",
 };
 const LIVE = (Deno.env.get("BILLING_LIVE") ?? "") === "true";
-const FREE_DAILY = Number(Deno.env.get("FREE_DAILY") ?? 5);
-const PRO_DAILY = Number(Deno.env.get("PRO_DAILY") ?? 300);
+const FREE_DAILY = Number(Deno.env.get("FREE_DAILY") ?? 3);
+const PRO_DAILY = Number(Deno.env.get("PRO_DAILY") ?? 40);
+const PRO_MONTHLY = Number(Deno.env.get("PRO_MONTHLY") ?? 600);
 const EARLY_DAILY = Number(Deno.env.get("EARLY_DAILY") ?? 150);
 const MODELS: Record<string, string> = {
   quick: Deno.env.get("MODEL_QUICK") ?? "claude-haiku-5-5",
@@ -80,6 +81,13 @@ Deno.serve(async (req) => {
   if (error) return fail(500, "usage");
   const meter = { "x-sr-used": String(n), "x-sr-limit": String(limit), "x-sr-plan": LIVE ? plan : "pro" };
   if ((n as number) > limit) return fail(429, "limit", meter);
+  if (isQuestion && LIVE && plan === "pro") {
+    // monthly fair-use ceiling so one account cannot cost more than it pays
+    const first = new Date(); first.setUTCDate(1);
+    const { data: rows } = await admin.from("usage").select("n").eq("key", "srq:" + who).gte("day", first.toISOString().slice(0, 10));
+    const month = (rows ?? []).reduce((a: number, r: any) => a + (r.n ?? 0), 0);
+    if (month > PRO_MONTHLY) return fail(429, "limit", meter);
+  }
 
   const up = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",

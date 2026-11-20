@@ -180,8 +180,8 @@ footer a{color:var(--muted)}
   <h2>Simple pricing</h2>
   <p class="sub" id="priceSub">Start free. Upgrade when it is part of your routine.</p>
   <div class="plans">
-    <div class="plan"><h3>Free</h3><div class="pr">$0</div><ul><li><span><b id="freeN">5</b> questions a day</span></li><li>Guided and Harder levels</li><li>Reasoning profile and pearls</li><li>Works with any question bank</li></ul><a class="btn ghost" href="app/">Start free</a></div>
-    <div class="plan pro"><span class="tag">Pro</span><h3>Pro</h3><div class="pr"><span id="pm">$9</span> <small>a month, or <span id="py">$72</span> a year</small></div><ul><li>Unlimited questions</li><li>Hardest level at exam pace</li><li>Extra help steps when you are stuck</li><li>Follow-up questions with your senior</li><li>Pearl export to Anki</li></ul><a class="btn" href="app/#pro" id="proBtn">Get Pro</a></div>
+    <div class="plan"><h3>Free</h3><div class="pr">$0</div><ul><li><span><b id="freeN">3</b> questions a day</span></li><li>Guided and Harder levels</li><li>Reasoning profile and pearls</li><li>Works with any question bank</li></ul><a class="btn ghost" href="app/">Start free</a></div>
+    <div class="plan pro"><span class="tag">Pro</span><h3>Pro</h3><div class="pr"><span id="pm">$15</span> <small>a month, or <span id="py">$120</span> a year</small></div><ul><li><span><b id="proN">40</b> questions a day, a full block</span></li><li>Hardest level at exam pace</li><li>Extra help steps when you are stuck</li><li>Follow-up questions with your senior</li><li>Pearl export to Anki</li></ul><a class="btn" href="app/#pro" id="proBtn">Get Pro</a></div>
   </div>
   <p class="note" id="priceNote" style="margin-top:18px"></p>
 </div></section>
@@ -222,7 +222,7 @@ footer a{color:var(--muted)}
 <script>
 (function(){
   var C = window.SR_CONFIG || {}; function $(i){ return document.getElementById(i); }
-  $('freeN').textContent = C.FREE_DAILY; $('pm').textContent = '$' + C.PRICE_MONTH; $('py').textContent = '$' + C.PRICE_YEAR;
+  $('freeN').textContent = C.FREE_DAILY; $('proN').textContent = C.PRO_DAILY; $('pm').textContent = '$' + C.PRICE_MONTH; $('py').textContent = '$' + C.PRICE_YEAR;
   if (!C.BILLING_LIVE){
     $('priceSub').textContent = 'Everything is unlocked during early access. This is what it will cost after.';
     $('proBtn').textContent = 'Join the Pro list';

@@ -135,7 +135,7 @@ function chatHTML(c){
 }
 function paywallHTML(){
   var signed = !!SR.user;
-  return '<div class="paywall">'+IC.logo+'<h2>That is today\'s '+plan.limit+' free questions</h2><p class="muted">They reset at midnight. Pro removes the limit and adds Hardest mode, extra help steps and pearl export.</p>'
+  return '<div class="paywall">'+IC.logo+'<h2>That is today\'s '+plan.limit+' free questions</h2><p class="muted">They reset at midnight. Pro gives you '+(CFG.PRO_DAILY||40)+' a day and adds Hardest mode, extra help steps and pearl export.</p>'
     + '<div class="row c"><button type="button" class="btn" data-act="upgrade">See Pro</button>'+(signed?'':'<button type="button" class="btn ghost" data-go="account">Sign in</button>')+'</div></div>';
 }
 function cardHTML(c){
@@ -234,7 +234,7 @@ function planCardHTML(){
       + '<p class="muted sm">Pro will be '+money(CFG.PRICE_MONTH)+' '+CFG.CURRENCY+' a month or '+money(CFG.PRICE_YEAR)+' a year. Early users get first access to launch pricing.</p>'
       + (waitlisted?'<p class="okline">'+IC.check+' You are on the Pro list.</p>':'<div class="row"><button type="button" class="btn" data-act="waitlist">Tell me when Pro opens</button></div>');
   } else if (plan.name==='pro'){
-    h += '<p><b>Pro.</b> Unlimited questions and every feature.'+(plan.until?' Renews '+esc(new Date(plan.until).toLocaleDateString())+'.':'')+'</p>'
+    h += '<p><b>Pro.</b> '+(CFG.PRO_DAILY||40)+' questions a day and every feature.'+(plan.until?' Renews '+esc(new Date(plan.until).toLocaleDateString())+'.':'')+'</p>'
       + (CFG.STRIPE_PORTAL?'<div class="row"><a class="btn ghost" target="_blank" rel="noopener" href="'+esc(CFG.STRIPE_PORTAL)+'">Manage billing</a></div>':'');
   } else {
     h += '<p><b>Free.</b> '+plan.limit+' questions a day. '+Math.max(0,plan.limit-plan.used)+' left today.</p><div class="row"><button type="button" class="btn" data-act="upgrade">Upgrade to Pro</button></div>';
@@ -279,7 +279,7 @@ async function mountGoogle(){
   } catch(e){ fallback(); }
 }
 function pricingHTML(){
-  var perks = ['Unlimited questions','Hardest mode at exam pace','Extra help steps when you are stuck','Follow-up questions with your senior','Pearl export to Anki'];
+  var perks = [(CFG.PRO_DAILY||40)+' questions a day, a full block','Hardest mode at exam pace','Extra help steps when you are stuck','Follow-up questions with your senior','Pearl export to Anki'];
   var live = billingLive() && (CFG.STRIPE_LINK_MONTH || CFG.STRIPE_LINK_YEAR);
   return '<div class="sheet" role="dialog" aria-label="Senior Resident Pro"><button type="button" class="close" data-act="closemodal" aria-label="Close">×</button>'
     + '<div class="ph2">'+IC.logo+'<h2>Senior Resident Pro</h2></div><ul class="perks">'+perks.map(function(p){ return '<li>'+IC.check+esc(p)+'</li>'; }).join('')+'</ul>'
