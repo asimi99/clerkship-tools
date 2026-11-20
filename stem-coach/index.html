@@ -432,7 +432,7 @@ function cardHTML(c){
 }
 
 function caseHTML(c){
-  return stemHTML(c) + '<div class="bar" id="bar" aria-hidden="true" style="margin-top:16px">'+barHTML(c)+'</div><main class="card" id="card" style="margin-top:16px">'+cardHTML(c)+'</main>';
+  return (EMBED ? '' : stemHTML(c)) + '<div class="bar" id="bar" aria-hidden="true" style="margin-top:16px">'+barHTML(c)+'</div><main class="card" id="card" style="margin-top:16px">'+cardHTML(c)+'</main>';
 }
 
 function histHTML(){
