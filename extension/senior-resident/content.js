@@ -115,5 +115,6 @@
   function check(){ var id = stemKey(); if (id && id !== last){ last = id; send({ t: 'newq', qid: id }); } }
   new MutationObserver(function(){ if (!tmr) tmr = setTimeout(function(){ tmr = null; check(); }, IS_UW ? 250 : 700); }).observe(document.body, { childList: true, subtree: true, characterData: true });
   setInterval(check, IS_UW ? 1500 : 2500);
+  setTimeout(check, 800);
   send({ t: 'hello' }, function(r){ if (r && r.open) setOpen(true); });
 })();
