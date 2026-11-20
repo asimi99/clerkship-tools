@@ -34,7 +34,7 @@ function renderTop(){
     + '</nav>';
 }
 window.onPlan = function(){ renderTop(); if (view==='account') renderStage(); };
-function tabLabel(c){ if (c.num) return 'Q' + c.num; if (c.qid && !/^h/.test(c.qid)) return 'Q' + c.qid; return c.title || (c.queued ? 'Queued' : 'Reading'); }
+function tabLabel(c){ var id = c.qid && !/^h/.test(c.qid) ? c.qid : ''; if (c.num) return 'Q' + c.num + (id ? ' - ' + id : ''); if (id) return 'QID ' + id; return c.title || (c.queued ? 'Queued' : 'Reading'); }
 function renderTabs(){
   if (view!=='coach' || !cases.length){ tabsEl.innerHTML = ''; tabsEl.hidden = true; return; }
   tabsEl.hidden = false;
@@ -198,7 +198,7 @@ function cardHTML(c){
   return h + '</div>';
 }
 function caseHTML(c){
-  var src = [c.src, c.num ? 'Q'+c.num : '', c.qid && !/^h/.test(c.qid) ? 'ID '+c.qid : ''].filter(Boolean).join(' · ');
+  var src = [c.src, c.title].filter(Boolean).join(' · ');
   return '<div class="qhead">'+(src?'<span class="src">'+esc(src)+'</span>':'')+'<span class="lv">'+esc((LEVELS.filter(function(l){return l[0]===(c.level||LEVEL)})[0]||LEVELS[0])[1])+'</span><span class="spacer"></span><button type="button" class="lnk" data-act="closecase">Close</button></div>'
     + stemHTML(c) + '<div class="bar" id="bar" aria-hidden="true">'+barHTML(c)+'</div><main class="card" id="card">'+cardHTML(c)+'</main>';
 }

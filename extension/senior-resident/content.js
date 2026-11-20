@@ -25,7 +25,7 @@
 
   /* UWorld: known layout */
   function uwQid(){ var m = (document.body.innerText || '').match(/Question Id:?\s*(\d{3,7})/i); return m ? m[1] : ''; }
-  function itemNo(){ var m = (document.body.innerText || '').slice(0, 6000).match(/\b(?:Item|Question)\s*:?\s*#?\s*(\d{1,3})\s*(?:of|\/)\s*\d{1,3}\b/i); return m ? m[1] : ''; }
+  function itemNo(){ var m = (document.body.innerText || '').match(/\b(?:Item|Question)\s*:?\s*#?\s*(\d{1,3})\s*(?:of|\/)\s*\d{1,3}\b/i); return m ? m[1] : ''; }
   function uwStem(){ return document.querySelector('.question-content') || document.querySelector('#questionText') || document.querySelector('[class*="question-content"]') || document.querySelector('[id*="questionText"]'); }
   function radioChoices(){
     var out = [];
