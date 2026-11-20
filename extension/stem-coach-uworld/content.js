@@ -60,6 +60,14 @@
       return true;
     }
   });
+  document.addEventListener('click', function(e){
+    if (isOpen) return;
+    var el = e.target && e.target.closest ? e.target.closest('button, a, [role="button"], li, [class*="navigat"], [class*="question-list"] *') : null;
+    if (!el) return;
+    var t = ((el.getAttribute('aria-label') || '') + ' ' + (el.title || '') + ' ' + (el.innerText || '')).trim().toLowerCase();
+    var nav = /\b(next|previous|prev)\b/.test(t) || (/^\d{1,3}$/.test((el.innerText || '').trim()) && !!el.closest('[class*="navigat"], [class*="question-list"], [class*="questionList"], mat-sidenav, aside'));
+    if (nav) chrome.runtime.sendMessage({ t: 'open' }, function(){ void chrome.runtime.lastError; });
+  }, true);
   var last = qid(), tmr = null;
   function check(){ var id = qid(); if (id && id !== last){ last = id; if (isOpen) chrome.runtime.sendMessage({ t: 'newq', qid: id }).catch(function(){}); } }
   new MutationObserver(function(){ if (!tmr) tmr = setTimeout(function(){ tmr = null; check(); }, 250); }).observe(document.body, { childList: true, subtree: true, characterData: true });
