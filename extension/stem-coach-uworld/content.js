@@ -1,29 +1,18 @@
 (function(){
-  if (window.top !== window || document.getElementById('sc-root')) return;
-  var EXT = chrome.runtime.getURL('').replace(/\/$/, '');
-  var W = 440; try { W = Math.max(320, Math.min(900, +localStorage.getItem('sc_panel_w') || 440)); } catch(e){}
+  if (window.top !== window || document.getElementById('sc-tab')) return;
 
-  var root = document.createElement('div'); root.id = 'sc-root'; root.hidden = true;
-  root.innerHTML = '<div id="sc-drag" title="Drag to resize"></div>';
-  var frame = document.createElement('iframe'); frame.id = 'sc-frame'; frame.style.width = W + 'px';
-  frame.src = chrome.runtime.getURL('panel.html');
-  root.appendChild(frame);
-  var tab = document.createElement('button'); tab.id = 'sc-tab'; tab.type = 'button'; tab.textContent = 'Stem Coach';
-  document.documentElement.appendChild(root); document.documentElement.appendChild(tab);
-
-  var pushCss = document.createElement('style'); pushCss.id = 'sc-push'; document.documentElement.appendChild(pushCss);
-  function push(){ pushCss.textContent = root.hidden ? '' : 'html{overflow:hidden!important}body{width:calc(100vw - ' + (W + 8) + 'px)!important;max-width:none!important;height:100vh!important;margin:0!important;overflow:auto!important;transform:translateZ(0)}'; window.dispatchEvent(new Event('resize')); }
-  function show(v){ root.hidden = !v; tab.hidden = v; push(); }
-  tab.addEventListener('click', function(){ show(true); });
-
-  var drag = root.querySelector('#sc-drag');
-  drag.addEventListener('mousedown', function(e){
-    e.preventDefault(); frame.style.pointerEvents = 'none';
-    function mv(ev){ W = Math.max(320, Math.min(window.innerWidth - 200, window.innerWidth - ev.clientX)); frame.style.width = W + 'px'; push(); }
-    function up(){ document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); frame.style.pointerEvents = ''; try { localStorage.setItem('sc_panel_w', W); } catch(e){} }
-    document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+  var tab = document.createElement('button'); tab.id = 'sc-tab'; tab.type = 'button';
+  tab.innerHTML = '<span class="sc-label">Stem Coach</span><span class="sc-arrow" aria-hidden="true">&#8250;</span>';
+  tab.title = 'Stem Coach (Alt+S)';
+  document.documentElement.appendChild(tab);
+  var isOpen = false;
+  function setOpen(v){ isOpen = v; tab.classList.remove('closing'); tab.classList.toggle('open', v); tab.title = v ? 'Close Stem Coach' : 'Stem Coach (Alt+S)'; }
+  tab.addEventListener('click', function(){
+    if (isOpen){ tab.classList.add('closing'); chrome.runtime.sendMessage({ t: 'close' }); setTimeout(function(){ setOpen(false); }, 280); return; }
+    chrome.runtime.sendMessage({ t: 'open' }, function(r){
+      if (chrome.runtime.lastError || !r || !r.ok) tab.title = 'Click the Stem Coach icon in the toolbar to open';
+    });
   });
-
   function clean(t){ return (t || '').replace(/ /g, ' ').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim(); }
   function qid(){ var m = (document.body.innerText || '').match(/Question Id:?\s*(\d{3,7})/i); return m ? m[1] : ''; }
   function stemEl(){ return document.querySelector('.question-content') || document.querySelector('#questionText') || document.querySelector('[class*="question-content"]') || document.querySelector('[id*="questionText"]'); }
@@ -60,27 +49,20 @@
     var text = clean(el.innerText) + (ch.length ? '\n\nAnswer choices:\n' + ch.join('\n') : '');
     return { qid: qid(), text: text, images: await images(el) };
   }
-  async function coach(){
-    show(true);
-    var q = await grab();
-    if (!q || !q.text){ frame.contentWindow.postMessage({ type: 'sc-status', msg: 'No question found on this page. Open a question, or highlight the stem and press Coach again.' }, EXT); return; }
-    frame.contentWindow.postMessage({ type: 'sc-question', qid: q.qid, text: q.text, images: q.images }, EXT);
-  }
-
-  window.addEventListener('message', function(e){
-    if (e.origin !== EXT || e.source !== frame.contentWindow) return;
-    var d = e.data || {};
-    if (d.type === 'sc-grab') coach();
-    if (d.type === 'sc-hide') show(false);
+  function dataUrl(b){ return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result); }; r.readAsDataURL(b); }); }
+  chrome.runtime.onMessage.addListener(function(m, sender, reply){
+    if (m.t === 'state') setOpen(!!m.open);
+    if (m.t === 'grab'){
+      grab().then(async function(q){
+        if (!q){ reply({ text: '' }); return; }
+        reply({ qid: q.qid, text: q.text, images: await Promise.all(q.images.map(dataUrl)) });
+      });
+      return true;
+    }
   });
-  chrome.runtime.onMessage.addListener(function(m){
-    if (m.t === 'toggle') show(root.hidden);
-    if (m.t === 'coach') coach();
-  });
-
   var last = '';
   setInterval(function(){
     var id = qid();
-    if (id && id !== last){ last = id; if (!root.hidden) frame.contentWindow.postMessage({ type: 'sc-newq', qid: id }, EXT); }
+    if (id && id !== last){ last = id; if (isOpen) chrome.runtime.sendMessage({ t: 'newq', qid: id }).catch(function(){}); }
   }, 1500);
 })();

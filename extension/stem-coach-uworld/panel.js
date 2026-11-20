@@ -1,21 +1,32 @@
-document.getElementById("coach").src = "https://asimi99.github.io/clerkship-tools/stem-coach/?embed=1&t=" + Date.now();
+document.getElementById('coach').src = 'https://asimi99.github.io/clerkship-tools/stem-coach/?embed=1&t=' + Date.now();
 (function(){
   var COACH = 'https://asimi99.github.io';
   var coach = document.getElementById('coach'), msg = document.getElementById('msg'), grab = document.getElementById('grab');
   var ready = false, queue = null;
+  var port = chrome.runtime.connect({ name: 'sc-panel' });
   function say(t){ msg.textContent = t || ''; msg.title = t || ''; }
   function toCoach(d){ if (ready) coach.contentWindow.postMessage(d, COACH); else queue = d; }
-  grab.addEventListener('click', function(){ grab.classList.remove('pulse'); say('Reading the question'); parent.postMessage({ type: 'sc-grab' }, '*'); });
-  document.getElementById('hide').addEventListener('click', function(){ parent.postMessage({ type: 'sc-hide' }, '*'); });
+  function blob(u){ var p = u.split(','), mime = (p[0].match(/:(.*?);/) || [])[1] || 'image/png', b = atob(p[1]), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return new Blob([a], { type: mime }); }
+  function doGrab(){
+    grab.classList.remove('pulse'); say('Reading the question');
+    chrome.runtime.sendMessage({ t: 'grab' }, function(q){
+      if (chrome.runtime.lastError || !q){ say('Could not reach the UWorld tab. Refresh it once.'); return; }
+      if (q.err){ say(q.err); return; }
+      if (!q.text){ say('No question found. Open a question, or highlight the stem and try again.'); return; }
+      say(q.qid ? 'Coaching Q ' + q.qid : 'Coaching your selection');
+      toCoach({ type: 'sc-question', qid: q.qid, text: q.text, images: (q.images || []).map(blob) });
+    });
+  }
+  grab.addEventListener('click', doGrab);
+  document.getElementById('hide').addEventListener('click', function(){ window.close(); });
+  port.onMessage.addListener(function(m){
+    if (m.t === 'close') window.close();
+    if (m.t === 'grab') doGrab();
+    if (m.t === 'newq'){ say('New question on screen: Q ' + m.qid); grab.classList.add('pulse'); }
+  });
   window.addEventListener('message', function(e){
-    var d = e.data || {};
-    if (e.source === coach.contentWindow && e.origin === COACH){
-      if (d.type === 'sc-ready'){ ready = true; if (queue){ coach.contentWindow.postMessage(queue, COACH); queue = null; } }
-      return;
+    if (e.source === coach.contentWindow && e.origin === COACH && (e.data || {}).type === 'sc-ready'){
+      ready = true; if (queue){ coach.contentWindow.postMessage(queue, COACH); queue = null; }
     }
-    if (e.source !== parent) return;
-    if (d.type === 'sc-question'){ say(d.qid ? 'Coaching Q ' + d.qid : 'Coaching your selection'); toCoach(d); }
-    if (d.type === 'sc-status') say(d.msg);
-    if (d.type === 'sc-newq'){ say('New question on screen: Q ' + d.qid); grab.classList.add('pulse'); }
   });
 })();
