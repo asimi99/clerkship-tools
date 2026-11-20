@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Stem Coach for UWorld",
+  "version": "1.0.0",
+  "description": "Opens Stem Coach beside the UWorld question you are on and walks you to the answer one decision at a time. Read only: it never clicks anything in UWorld.",
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" },
+  "action": { "default_title": "Stem Coach (Alt+S)" },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{
+    "matches": ["https://apps.uworld.com/*", "https://*.uworld.com/*"],
+    "js": ["content.js"],
+    "css": ["content.css"],
+    "run_at": "document_idle"
+  }],
+  "web_accessible_resources": [{
+    "resources": ["panel.html", "panel.js", "panel.css"],
+    "matches": ["https://*.uworld.com/*"]
+  }],
+  "commands": {
+    "toggle-panel": { "suggested_key": { "default": "Alt+S" }, "description": "Show or hide Stem Coach" },
+    "coach-question": { "suggested_key": { "default": "Alt+C" }, "description": "Coach the question on screen" }
+  }
+}

@@ -1,0 +1,8 @@
+#sc-root{position:fixed;top:0;right:0;bottom:0;z-index:2147483646;display:flex;pointer-events:none}
+#sc-root[hidden]{display:none!important}
+#sc-drag{width:8px;cursor:ew-resize;pointer-events:auto;background:transparent}
+#sc-drag:hover{background:rgba(11,110,110,.25)}
+#sc-frame{border:0;height:100%;pointer-events:auto;background:#f3f6f8;box-shadow:-6px 0 24px rgba(0,0,0,.18);border-left:1px solid #d6dfe6}
+#sc-tab{position:fixed;right:0;top:45%;z-index:2147483646;writing-mode:vertical-rl;transform:rotate(180deg);font:600 13px/1 Inter,system-ui,sans-serif;letter-spacing:.04em;color:#fff;background:#0b6e6e;border:0;border-radius:0 8px 8px 0;padding:12px 7px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+#sc-tab:hover{background:#095a5a}
+#sc-tab[hidden]{display:none!important}

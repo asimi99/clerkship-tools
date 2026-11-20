@@ -141,6 +141,11 @@ tr.me td{background:var(--good-soft)}
   @keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
   .fb{animation:in .18s ease-out}@keyframes in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 }
+html.embed body{padding-block:8px 24px; font-size:15px}
+html.embed .wrap{padding-top:8px; gap:12px}
+html.embed .wrap > header{display:none}
+html.embed .ctn-dd a[href*="flowcharts"], html.embed .ctn-m{display:none}
+.embedwait{color:var(--muted); font-size:14px; line-height:1.5}
 </style>
 <link rel="stylesheet" href="../site.css?v=7">
 </head>
@@ -436,7 +441,7 @@ function histHTML(){
 function renderStage(){
   if (!CT.ready){ tabsEl.innerHTML=''; stage.innerHTML = '<section class="panel"><h2>Stem Coach is not switched on yet</h2><p class="muted">The site owner still has to finish setup.</p></section>'; return; }
   renderTabs();
-  if (cur===-1){ stage.innerHTML = uploadHTML() + histHTML(); return; }
+  if (cur===-1){ stage.innerHTML = (!EMBED?'<p class="muted" style="margin:0;font-size:14px">Use it right inside UWorld: <a href="../extension/">get the Chrome extension</a>.</p>':'') + (EMBED?'<section class="panel"><h2>Coach the question on screen</h2><p class="embedwait">Open a question in UWorld, then press <b>Coach this question</b> at the top of this panel. It reads the stem, the choices and any images. Nothing is clicked in UWorld.</p></section>':'') + uploadHTML() + histHTML(); return; }
   var c = cases[cur]; c.revealShown = false;
   stage.innerHTML = caseHTML(c);
 }
@@ -665,6 +670,20 @@ async function loadHist(){
   } else { hist = lsGet(); }
   if (cur===-1) renderStage();
 }
+
+/* ---------- UWorld side panel (Chrome extension) ---------- */
+var EMBED = /[?&]embed=1/.test(location.search);
+if (EMBED) document.documentElement.classList.add('embed');
+window.addEventListener('message', async function(e){
+  if (!EMBED || !(/^https:\/\/([a-z0-9-]+\.)*uworld\.com$/.test(e.origin) || /^chrome-extension:\/\/[a-p]{32}$/.test(e.origin))) return;
+  var d = e.data || {}; if (d.type !== 'sc-question') return;
+  if (d.qid){ var ex = cases.findIndex(function(c){ return c.qid===d.qid; }); if (ex>=0){ cur = ex; renderStage(); return; } }
+  var files = (d.images||[]).slice(0, MAXIMG).map(function(b){ return { blob:b, url:URL.createObjectURL(b) }; });
+  var c = { title:(d.qid?'Q '+d.qid:''), qid:d.qid||'', files:files, text:d.text||'', level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false, queued:false };
+  cases.push(c); cur = cases.length-1; renderStage(); window.scrollTo({top:0});
+  await gen(c);
+});
+if (EMBED && window.parent !== window) window.parent.postMessage({ type:'sc-ready' }, '*');
 
 /* ---------- start ---------- */
 CT.onAuth(function(){ loadHist(); });

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stem Coach for UWorld</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../site.css?v=7">
+<style>
+.wrap{max-width:760px;padding:24px max(16px,env(safe-area-inset-right,0px)) 56px max(16px,env(safe-area-inset-left,0px))}
+ol{padding-left:22px;line-height:1.7}
+code{background:var(--accent-soft);padding:1px 6px;border-radius:5px}
+.dl{display:inline-block;margin:10px 0 18px;padding:11px 18px;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-weight:700;text-decoration:none}
+.note{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pagehead"><h1>Stem Coach for UWorld</h1><p>A Chrome extension that opens Stem Coach in a panel beside the UWorld question you are on. Press <b>Coach this question</b> and it reads the stem, the answer choices and any images, then walks you to the answer one decision at a time.</p></header>
+<a class="dl" href="stem-coach-uworld.zip">Download the extension (.zip)</a>
+<h2>Install (one time, about a minute)</h2>
+<ol>
+<li>Unzip the download. You get a folder called <code>stem-coach-uworld</code>.</li>
+<li>In Chrome, go to <code>chrome://extensions</code>.</li>
+<li>Turn on <b>Developer mode</b> (top right).</li>
+<li>Click <b>Load unpacked</b> and pick the <code>stem-coach-uworld</code> folder.</li>
+<li>Pin it from the puzzle-piece menu if you like.</li>
+</ol>
+<h2>Use</h2>
+<ol>
+<li>Open a question in UWorld. A <b>Stem Coach</b> tab sits on the right edge.</li>
+<li>Click it (or the toolbar icon, or <code>Alt+S</code>) to open the panel. Drag its left edge to resize.</li>
+<li>Press <b>Coach this question</b> (or <code>Alt+C</code>). When you move to a new question the button glows.</li>
+<li>Highlighted text wins: select part of a page and press Coach to coach just that.</li>
+</ol>
+<p class="note">Read only: it never clicks, answers or submits anything in UWorld, and it reads only the question and choices, not the explanation. Sign in inside the panel to use your account. The guest daily limit applies otherwise.</p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../config.js?v=3"></script>
+<script src="../auth.js?v=3"></script>
+<script src="../nav.js?v=21"></script>
+</body>
+</html>
