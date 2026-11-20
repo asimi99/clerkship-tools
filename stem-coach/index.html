@@ -100,6 +100,7 @@ textarea{
 .opt .x:hover{background:var(--line); color:var(--fg)}
 .opt.crossed span.t{text-decoration:line-through; color:var(--muted)}
 .opt.crossed{opacity:.6}
+.opt.ruled span.t{text-decoration:line-through; text-decoration-thickness:2px; text-decoration-color:var(--good)}
 .opt.crossed .x{color:var(--accent)}
 .fb{border-radius:10px; padding:11px 14px; font-size:15px; border-left:4px solid; overflow-wrap:anywhere}
 .fb b{display:block; font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:2px}
@@ -417,7 +418,7 @@ function cardHTML(c){
   h += '<div class="opts">';
   s.opts.forEach(function(o,k){
     var picked = st.sel[i]===k, crossed = !picked && st.cross && st.cross[i] && st.cross[i][k];
-    h += '<button type="button" class="opt'+(picked?' sel r-'+(o.v==='good'?'good':(o.v==='warn'?'warn':'bad')):'')+(crossed?' crossed':'')+'" data-act="pick" data-k="'+k+'"><span class="k"></span><span class="t">'+esc(o.t)+'</span><span class="x" role="button" aria-label="'+(crossed?'Undo cross out':'Cross out this option')+'" title="Cross out (or right-click the option)" data-act="cross" data-k="'+k+'">ab</span></button>';
+    h += '<button type="button" class="opt'+(picked?' sel r-'+(o.v==='good'?'good':(o.v==='warn'?'warn':'bad')):'')+(crossed?' crossed':'')+(picked&&o.v==='good'&&(s.type==='final'||s.kind2==='elim')?' ruled':'')+'" data-act="pick" data-k="'+k+'"><span class="k"></span><span class="t">'+esc(o.t)+'</span><span class="x" role="button" aria-label="'+(crossed?'Undo cross out':'Cross out this option')+'" title="Cross out (or right-click the option)" data-act="cross" data-k="'+k+'">ab</span></button>';
   });
   h += otherBlock(c,i) + '</div>';
   var p = st.sel[i];
