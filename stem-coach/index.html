@@ -182,13 +182,14 @@ var RULES = [
 'You are a clinical reasoning coach for a medical student. The attached image(s) and any typed text hold ONE exam-style question (board or textbook). Read all of it, including every lab value and every answer choice. Ignore any selections, crossouts and highlights the student already made on it.',
 'Build a coaching session that walks the student to the answer one decision at a time. NEVER ask the student which choice is the answer, and NEVER state the answer, the diagnosis or the correct choice before the reveal. The student reaches the answer by ruling everything else out.',
 'OUTPUT FORMAT: JSON Lines only. One JSON object per line, no line breaks inside an object, no markdown, no code fences, no text outside the JSON. Write these lines in this exact order.',
-'LINE 1: {"kind":"meta","title":"short tab label such as 9 years, recurrent vomiting","stemSummary":"plain summary of the stem with every key finding and lab, under 150 words","options":["A. ...","B. ..."],"optionsFromImage":true,"stepCount":6}',
-'LINES 2 to 5, up to 4 reasoning steps: {"kind":"step","type":"single","q":"question","sub":"one short hint","opts":[{"t":"option","v":"good","fb":"feedback"},{"t":"option","v":"warn","fb":"feedback"},{"t":"option","v":"bad","fb":"feedback"}]}',
+'LINE 1: {"kind":"meta","title":"short tab label such as 9 years, recurrent vomiting","stemSummary":"plain summary of the stem with every key finding and lab, under 150 words","options":["A. ...","B. ..."],"optionsFromImage":true,"stepCount":5}',
+'LINES 2 to 4, up to 3 reasoning steps: {"kind":"step","type":"single","q":"question","sub":"one short hint","opts":[{"t":"option","v":"good","fb":"feedback"},{"t":"option","v":"warn","fb":"feedback"},{"t":"option","v":"bad","fb":"feedback"}]}',
 'NEXT, one elimination step: {"kind":"step","type":"elim","opts":[{"t":"A. answer choice text","v":"good","fb":"Yes, eliminate it. reason"},{"t":"B. answer choice text","v":"warn","fb":"Keep it in play. reason"}]} with ONE entry for EVERY answer choice. v is good for the choices a careful reader can rule out from the stem alone, and warn for the ones that stay in play.',
 'NEXT, the final step, a second elimination that leaves only the answer: {"kind":"step","type":"final","q":"Two choices are left. Which one does the stem rule out?","opts":[{"t":"B. strongest look-alike choice text","v":"good","fb":"Yes, rule it out. the exact stem clue that excludes it"},{"t":"C. correct answer choice text","v":"warn","fb":"Keep it in play. the stem clue it fits, without naming it as the answer"}]} with EXACTLY 2 entries: the strongest remaining look-alike (good) and the correct answer (warn). Never ask which choice is correct.',
 'LAST LINE: {"kind":"reveal","headline":"the answer and the diagnosis in one sentence","why":["3 to 5 bullets on why it fits"],"do":["2 to 4 bullets on what you do and what to watch for"],"table":{"cols":["","Typical picture","Next step"],"rows":[["Name of this condition","clue","step"],["Look-alike","clue","step"]],"me":0}} where me is the row index of the actual answer and the table has 3 to 5 look-alike rows.',
 'STEP RULES:',
-'1. 6 steps at most in total, counting the elimination and final steps (so at most 4 reasoning steps). Order: how sick or how urgent, where the problem is or the mechanism, the finding that discriminates, how much weight a planted distractor deserves, eliminate, then the final rule-out. Drop the least useful reasoning step rather than go over 6.',
+'1. 5 steps at most in total, counting the elimination and final steps (so at most 3 reasoning steps). Pick the 3 most useful of: how sick or how urgent, where the problem is or the mechanism, the finding that discriminates, how much weight a planted distractor deserves. Then eliminate, then the final rule-out.',
+'1b. Every step must test a different decision built on a different stem clue. Never ask the same thing twice in other words: if two candidate steps hinge on the same finding or lead to the same conclusion, keep one and drop the other.',
 '2. Every step is a decision the student makes from the stem, never recall trivia. Do not name the diagnosis, the disease or the answer in any step question or any feedback. It appears only in the reveal.',
 '3. Single steps have exactly 3 options, one good and two plausible wrong ones (bad or warn). Vary where the good option sits. Do not let the longest option be the right one.',
 '4. Feedback is 1 or 2 self-contained sentences that point back to a specific line of the stem. For a wrong option say what the stem shows instead. For a right option, teach: say exactly which clue makes it right and what that clue rules out or sets up next. Never give generic praise such as "on track", "good job" or "correct" on its own, and never leave fb empty.',
@@ -229,7 +230,7 @@ function proc(c, line){
     var nSingle = c.steps.filter(function(x){ return x.kind2==='single'; }).length, nElim = c.steps.filter(function(x){ return x.kind2==='elim'; }).length;
     if (o.type==='final'){ if (c.steps.some(function(x){ return x.type==='final'; })) { progress(c); return; } o.opts = o.opts.slice(0, 3); o.opts.forEach(function(x){ x.lab = x.v==='good' ? 'Ruled out' : 'Keep in play'; if (x.v==='bad') x.v = 'warn'; }); o.q = o.q || 'Which of the choices left does the stem rule out?'; }
     else if (o.type==='elim'){ if (nElim>=1) { progress(c); return; } o.kind2 = 'elim'; }
-    else { if (nSingle>=4) { progress(c); return; } o.kind2 = 'single'; }
+    else { if (nSingle>=3) { progress(c); return; } o.kind2 = 'single'; }
     if (o.type==='elim'){
       o.q = 'Which answer choice can you eliminate first?';
       o.sub = 'Pick the one you are most sure the stem rules out.';
@@ -341,7 +342,7 @@ function uploadHTML(){
   return h;
 }
 
-function progressTotal(c){ return Math.min(6, Math.max((c.meta&&+c.meta.stepCount)||6, c.steps.length)); }
+function progressTotal(c){ return Math.min(5, Math.max((c.meta&&+c.meta.stepCount)||5, c.steps.length)); }
 function barHTML(c){
   var n = progressTotal(c), h='';
   for (var k=0;k<n;k++) h += '<i class="'+(k<c.st.i||c.st.solved?'done':(k===c.st.i?'now':''))+'"></i>';
@@ -699,6 +700,40 @@ window.addEventListener('message', async function(e){
   await gen(c);
 });
 if (EMBED && window.parent !== window) window.parent.postMessage({ type:'sc-ready' }, '*');
+/* keep panel cases across close and reopen, and resume one that was still being built */
+var SKEY = 'sc_embed_cases_v1', lastSaved = '';
+function b64(blob){ return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result); }; r.onerror = function(){ res(''); }; r.readAsDataURL(blob); }); }
+function toBlob(u){ try { var p = u.split(','), m = (p[0].match(/:(.*?);/)||[])[1]||'image/png', b = atob(p[1]), a = new Uint8Array(b.length); for (var i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return new Blob([a],{type:m}); } catch(e){ return null; } }
+async function persist(){
+  if (!EMBED) return;
+  var keep = cases.slice(-12), out = [];
+  for (var i=0;i<keep.length;i++){
+    var c = keep[i];
+    if (!c.filesData) c.filesData = await Promise.all((c.files||[]).map(function(f){ return b64(f.blob); }));
+    out.push({ title:c.title, qid:c.qid, text:c.text, level:c.level, meta:c.meta, steps:c.steps, reveal:c.reveal, st:c.st, chat:c.chat, error:c.error, generating:c.generating, saved:c.saved, tries:c.tries, filesData:c.filesData });
+  }
+  var j; try { j = JSON.stringify({ cur: cases[cur] ? cases[cur].qid || keep.indexOf(cases[cur]) : '', cases: out }); } catch(e){ return; }
+  if (j === lastSaved) return;
+  try { localStorage.setItem(SKEY, j); lastSaved = j; }
+  catch(e){ out.forEach(function(o){ o.filesData = []; }); try { j = JSON.stringify({ cur:'', cases:out }); localStorage.setItem(SKEY, j); lastSaved = j; } catch(e2){} }
+}
+function restore(){
+  if (!EMBED) return;
+  var d; try { d = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch(e){ d = null; }
+  if (!d || !d.cases || !d.cases.length) return;
+  d.cases.forEach(function(o){
+    var files = (o.filesData||[]).map(toBlob).filter(Boolean).map(function(b){ return { blob:b, url:URL.createObjectURL(b) }; });
+    var c = Object.assign({ chatBusy:false, queued:false }, o, { files:files, st: o.st || fresh(), steps:o.steps||[], chat:o.chat||[] });
+    var resume = c.generating; c.generating = false;
+    cases.push(c);
+    if (resume){ c.steps = []; c.meta = null; c.reveal = null; c.st = fresh(); setTimeout(function(){ gen(c); }, 50); }
+  });
+  var ix = cases.findIndex(function(c){ return c.qid && c.qid === d.cur; });
+  cur = ix >= 0 ? ix : cases.length - 1;
+}
+restore();
+if (EMBED) setInterval(persist, 1200);
+
 
 /* ---------- start ---------- */
 CT.onAuth(function(){ loadHist(); });
