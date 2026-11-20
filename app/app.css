@@ -220,7 +220,7 @@ tr.me td{background:var(--good-soft)}
 .price b{font-size:26px;letter-spacing:-.02em} .price span{font-size:13.5px;color:var(--muted)} .price em{font-style:normal;font-size:12.5px;color:var(--muted);margin-top:4px}
 .price .tag{position:absolute;top:-10px;background:var(--brand);color:var(--brand-fg);font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px}
 
-html.embed body{font-size:15px}
+html.embed body{font-size:15px;zoom:.88}
 html.embed .top{height:48px;gap:6px} html.embed .brand{gap:7px} html.embed .brand span{font-size:14.5px} html.embed .ib{width:32px;height:32px} html.embed .nav{gap:1px} html.embed .pill{padding:3px 8px;font-size:11.5px}
 html.embed .wrap{padding-top:12px;gap:12px}
 html.embed .card{padding:16px 14px} html.embed .panel{padding:14px}
