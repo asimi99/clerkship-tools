@@ -71,7 +71,8 @@
     setBg('idle');
     chrome.runtime.sendMessage({ t: 'open' }, function(){ void chrome.runtime.lastError; });
   }
-  document.addEventListener('pointerdown', popIfReady, true);
+  document.addEventListener('click', popIfReady, true);
+  document.addEventListener('mouseup', popIfReady, true);
   document.addEventListener('keydown', popIfReady, true);
   var last = '', tmr = null;
   function check(){ var id = qid(); if (id && id !== last){ last = id; chrome.runtime.sendMessage({ t: 'newq', qid: id }).catch(function(){}); } }

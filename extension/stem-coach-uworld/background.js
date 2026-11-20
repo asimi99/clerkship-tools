@@ -52,7 +52,8 @@ chrome.runtime.onMessage.addListener(function(m, sender, reply){
     return;
   }
   if (m.t === 'bg-done'){
-    if (m.qid === bgBusy){ bgBusy = ''; bgReady = m.ok ? m.qid : ''; notifyTabs({ t: 'bg', state: m.ok ? 'ready' : 'idle', qid: m.qid }); }
+    if (panelPort) return;
+    bgBusy = ''; bgReady = m.ok ? m.qid : ''; notifyTabs({ t: 'bg', state: m.ok ? 'ready' : 'idle', qid: m.qid });
     return;
   }
   if (m.t === 'grab'){

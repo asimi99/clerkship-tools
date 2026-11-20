@@ -175,7 +175,7 @@ var up = { files:[], text:'', mode:'each', groups:'' };
 var stage = document.getElementById('stage'), tabsEl = document.getElementById('tabs');
 
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
-function fresh(){ return { i:0, sel:{}, cross:{}, other:{}, otherOpen:{}, solved:false, otherFb:{}, otherBusy:{} }; }
+function fresh(){ return { i:0, sel:{}, cross:{}, ruled:{}, other:{}, otherOpen:{}, solved:false, otherFb:{}, otherBusy:{} }; }
 var LABEL = { good:'Correct', warn:'Partly', bad:'Not quite', note:'Noted' };
 function fbHtml(cls, text, lab){ return '<div class="fb '+cls+'"><b>'+esc(lab||LABEL[cls])+'</b>'+text+'</div>'; }
 
@@ -418,8 +418,10 @@ function cardHTML(c){
   if (sub) h += '<p class="sub">'+esc(sub)+'</p>';
   h += '<div class="opts">';
   s.opts.forEach(function(o,k){
-    var picked = st.sel[i]===k, crossed = !picked && st.cross && st.cross[i] && st.cross[i][k];
-    h += '<button type="button" class="opt'+(picked?' sel r-'+(o.v==='good'?'good':(o.v==='warn'?'warn':'bad')):'')+(crossed?' crossed':'')+(picked&&o.v==='good'&&(s.type==='final'||s.kind2==='elim')?' ruled':'')+'" data-act="pick" data-k="'+k+'"><span class="k"></span><span class="t">'+esc(o.t)+'</span><span class="x" role="button" aria-label="'+(crossed?'Undo cross out':'Cross out this option')+'" title="Cross out (or right-click the option)" data-act="cross" data-k="'+k+'">ab</span></button>';
+    var elimLike = (s.type==='final'||s.kind2==='elim'), rk = String(o.t||'').trim().toLowerCase();
+    var ruled = elimLike && o.v==='good' && ((st.sel[i]===k) || (st.ruled && st.ruled[rk]));
+    var picked = st.sel[i]===k, crossed = !picked && !ruled && st.cross && st.cross[i] && st.cross[i][k];
+    h += '<button type="button" class="opt'+(picked?' sel r-'+(o.v==='good'?'good':(o.v==='warn'?'warn':'bad')):'')+(ruled&&!picked?' r-good':'')+(crossed?' crossed':'')+(ruled?' ruled':'')+'" data-act="pick" data-k="'+k+'"><span class="k"></span><span class="t">'+esc(o.t)+'</span><span class="x" role="button" aria-label="'+(crossed?'Undo cross out':'Cross out this option')+'" title="Cross out (or right-click the option)" data-act="cross" data-k="'+k+'">ab</span></button>';
   });
   h += otherBlock(c,i) + '</div>';
   var p = st.sel[i];
@@ -532,11 +534,18 @@ async function ask(c, q){
   if (cases[cur]===c) renderStage();
 }
 
+function markRuled(c, i, k, toggle){
+  var s = c.steps[i], st = c.st; if (!s || !(s.type==='final'||s.kind2==='elim')) return false;
+  var o = s.opts[k]; if (!o || o.v!=='good') return false;
+  var rk = String(o.t||'').trim().toLowerCase(); st.ruled = st.ruled || {};
+  st.ruled[rk] = toggle ? !st.ruled[rk] : true; return true;
+}
 /* ---------- actions ---------- */
 stage.addEventListener('contextmenu', function(e){
   var o = e.target.closest('.opt[data-act="pick"]'); var c = cases[cur]; if (!o || !c) return;
   e.preventDefault(); var st = c.st, i = st.i, k = +o.dataset.k;
   if (st.sel[i]===k) return;
+  if (markRuled(c, i, k, true)){ renderStage(); return; }
   st.cross = st.cross || {}; st.cross[i] = st.cross[i] || {}; st.cross[i][k] = !st.cross[i][k]; renderStage();
 });
 stage.addEventListener('click', async function(e){
@@ -563,11 +572,12 @@ stage.addEventListener('click', async function(e){
   var st = c2.st, i = st.i, s = c2.steps[i];
   if (act==='cross'){
     e.stopPropagation(); st.cross = st.cross || {}; st.cross[i] = st.cross[i] || {};
-    var ck = +el.dataset.k; st.cross[i][ck] = !st.cross[i][ck]; renderStage(); return;
+    var ck = +el.dataset.k; if (markRuled(c2, i, ck, true)){ renderStage(); return; } st.cross[i][ck] = !st.cross[i][ck]; renderStage(); return;
   }
   if (act==='pick'){
     st.sel[i] = +el.dataset.k;
     if (st.cross && st.cross[i]) st.cross[i][st.sel[i]] = false;
+    markRuled(c2, i, st.sel[i], false);
     if (s.type==='final'){
       c2.tries = (c2.tries||0) + 1;
       st.solved = (s.opts[st.sel[i]].v==='good');
@@ -695,7 +705,7 @@ if (EMBED) document.documentElement.classList.add('embed');
 window.addEventListener('message', async function(e){
   if (!EMBED || !(/^https:\/\/([a-z0-9-]+\.)*uworld\.com$/.test(e.origin) || /^chrome-extension:\/\/[a-p]{32}$/.test(e.origin))) return;
   var d = e.data || {}; if (d.type !== 'sc-question') return;
-  if (d.qid){ var ex = cases.findIndex(function(c){ return c.qid===d.qid; }); if (ex>=0){ cur = ex; renderStage(); return; } }
+  if (d.qid){ var ex = cases.findIndex(function(c){ return c.qid===d.qid; }); if (ex>=0){ cur = ex; renderStage(); if (!cases[ex].generating){ try { await persist(); } catch(x){} window.parent.postMessage({ type:'sc-done', qid:d.qid, ok:cases[ex].steps.length>0 }, '*'); } return; } }
   var files = (d.images||[]).slice(0, MAXIMG).map(function(b){ return { blob:b, url:URL.createObjectURL(b) }; });
   var c = { title:(d.qid?'Q '+d.qid:''), qid:d.qid||'', files:files, text:d.text||'', level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false, queued:false };
   cases.push(c); cur = cases.length-1; renderStage(); window.scrollTo({top:0});
