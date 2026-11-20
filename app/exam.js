@@ -1,7 +1,8 @@
 /* Senior Resident exam mode: turn a PDF of practice questions into a sit-down exam with review and coaching.
    The PDF is read in the browser. Its text stays on this device unless the person asks for coaching or an answer key. */
 var exams = lsGet('sr_exams_v1', []);
-var EX = { id:null, screen:'home', mode:'tutor', run:null, rev:-1, busy:'', msg:'' };
+var EX = { id:null, screen:'home', mode:'tutor', run:null, rev:-1, busy:'', msg:'', sc:true, pick2:'' };
+try { if (localStorage.getItem('sr_second') === '0') EX.sc = false; } catch(e){}
 function saveExams(){
   while (!lsSet('sr_exams_v1', exams) && exams.length > 1) exams.pop();
 }
@@ -140,15 +141,18 @@ async function showPage(e, p){
 
 /* ---------- sitting it ---------- */
 function exScore(e, a){ var keyed = e.qs.filter(function(q){ return q.ans; }), ok = keyed.filter(function(q){ return a.answers[q.n] === q.ans; }).length; return { keyed:keyed.length, ok:ok, pct:keyed.length ? Math.round(100 * ok / keyed.length) : null }; }
+function exMissed(e, a){ return e.qs.filter(function(q){ return q.ans && a.answers[q.n] !== q.ans; }); }
+function exNextRetry(e, a, from){ var m = exMissed(e, a).filter(function(q){ return !a.second[q.n]; }); if (!m.length) return -1; var later = m.filter(function(q){ return e.qs.indexOf(q) > from; })[0] || m[0]; return e.qs.indexOf(later); }
 function exClock(s){ s = Math.max(0, Math.round(s)); var m = Math.floor(s / 60), h = Math.floor(m / 60); return (h ? h + ':' + ('0' + (m % 60)).slice(-2) : m) + ':' + ('0' + (s % 60)).slice(-2); }
 function exStart(){
   var e = exGet(); if (!e) return;
-  EX.run = { i:0, answers:{}, flags:{}, cross:{}, shown:{}, start:Date.now(), limit:EX.mode === 'timed' ? e.qs.length * 90 : 0, mode:EX.mode };
+  EX.run = { i:0, answers:{}, flags:{}, cross:{}, shown:{}, first:{}, second:{}, sc:EX.sc, start:Date.now(), limit:EX.mode === 'timed' ? e.qs.length * 90 : 0, mode:EX.mode };
   EX.screen = 'run'; renderStage(); window.scrollTo({ top:0 });
 }
 function exFinish(){
   var e = exGet(), r = EX.run; if (!e || !r) return;
-  var a = { ts:Date.now(), secs:Math.round((Date.now() - r.start) / 1000), answers:r.answers, flags:r.flags, mode:r.mode };
+  var ans = {}, k; for (k in r.answers) ans[k] = r.answers[k]; for (k in r.first) ans[k] = r.first[k];
+  var a = { ts:Date.now(), secs:Math.round((Date.now() - r.start) / 1000), answers:ans, flags:r.flags, mode:r.mode, sc:!!r.sc, second:r.second || {} };
   a.score = exScore(e, a); e.attempts.unshift(a); e.attempts = e.attempts.slice(0, 5); saveExams();
   EX.run = null; EX.screen = 'results'; EX.rev = -1; renderStage(); window.scrollTo({ top:0 });
 }
@@ -190,50 +194,68 @@ function exStartHTML(e){
     + '<p class="muted">' + e.qs.length + ' questions' + (e.pages ? ' from ' + e.pages + ' pages' : '') + '. ' + (keyed === e.qs.length ? 'Answer key found.' : keyed ? 'Answer key found for ' + keyed + ' of them.' : 'No answer key in this PDF.') + (e.key === 'ai' ? ' Some answers were keyed by Senior Resident, not the publisher.' : '') + '</p>';
   if (keyed < e.qs.length) h += '<div class="row"><button type="button" class="btn ghost sm" data-ex="key"' + (EX.busy ? ' disabled' : '') + '>' + (EX.busy === 'key' ? 'Keying the answers' : 'Key the rest with Senior Resident') + '</button><span class="muted sm">Its best answers, clearly marked. Not an official key.</span></div>';
   h += '<div class="seg" role="radiogroup" aria-label="Mode"><button type="button" role="radio" aria-checked="' + (EX.mode === 'tutor') + '" data-ex="mode" data-m="tutor">Tutor</button><button type="button" role="radio" aria-checked="' + (EX.mode === 'timed') + '" data-ex="mode" data-m="timed">Timed</button></div>'
-    + '<p class="muted sm">' + (EX.mode === 'tutor' ? 'See whether you were right after each question, with coaching one tap away.' : '90 seconds a question, ' + exClock(e.qs.length * 90) + ' in total. Answers and coaching come at the end.') + '</p>'
+    + '<p class="muted sm">' + (EX.mode === 'tutor' ? 'See whether you were right after each question, with coaching one tap away.' : '90 seconds a question, ' + exClock(e.qs.length * 90) + ' in total. Scored only when you submit at the end. The review is where the learning happens.') + '</p>'
+    + '<button type="button" class="sctog' + (EX.sc ? ' on' : '') + '" role="switch" aria-checked="' + EX.sc + '" data-ex="sc"><i></i><span><b>Second chance</b><em>Miss a question and the answer stays hidden. You get one more try first, in tutor mode straight away and in timed mode during review. Your score still counts your first answer only.</em></span></button>'
     + '<div class="row"><button type="button" class="btn" data-ex="start">Start</button>' + (a ? '<button type="button" class="btn ghost" data-ex="results">Last result</button>' : '') + '</div></section>';
   return h;
 }
-function exQHTML(e, q, picked, reveal, cross){
+function exQHTML(e, q, picked, reveal, cross, dead){
   var h = '<h2 class="exstem">' + esc(q.stem) + '</h2><div class="opts">';
   q.opts.forEach(function(o){
     var cls = '';
     if (reveal && q.ans){ if (o.k === q.ans) cls = ' r-good sel'; else if (o.k === picked) cls = ' r-bad sel'; }
     else if (o.k === picked) cls = ' on';
     if (cross && cross[o.k] && o.k !== picked) cls += ' crossed';
-    h += '<button type="button" class="opt' + cls + '" data-ex="pick" data-k="' + o.k + '"' + (reveal ? ' disabled' : '') + '><kbd>' + o.k + '</kbd><span class="t">' + esc(o.t) + '</span></button>';
+    if (dead && o.k === dead && !reveal) cls += ' crossed r-bad';
+    else if (dead && o.k === dead && reveal && o.k !== q.ans) cls += ' r-bad';
+    h += '<button type="button" class="opt' + cls + '" data-ex="pick" data-k="' + o.k + '"' + (reveal || (dead && o.k === dead) ? ' disabled' : '') + '><kbd>' + o.k + '</kbd><span class="t">' + esc(o.t) + '</span></button>';
   });
   return h + '</div>';
 }
 function exRunHTML(e){
   var r = EX.run, q = e.qs[r.i], picked = r.answers[q.n], reveal = r.mode === 'tutor' && r.shown[q.n];
   var h = '<div class="exbar"><b>' + esc(e.title) + '</b><span class="spacer"></span><span class="extime" id="exTimer">' + (r.limit ? exClock(r.limit - (Date.now() - r.start) / 1000) : exClock((Date.now() - r.start) / 1000)) + '</span><button type="button" class="btn ghost sm" data-ex="end">End exam</button></div>';
-  h += '<main class="card"><div class="step"><span>Question ' + (r.i + 1) + ' of ' + e.qs.length + '</span><button type="button" class="flagb' + (r.flags[q.n] ? ' on' : '') + '" data-ex="flag">' + XI.flag + (r.flags[q.n] ? 'Flagged' : 'Flag') + '</button></div>' + exQHTML(e, q, picked, reveal, r.cross[q.n]);
+  var f1 = r.first[q.n];
+  h += '<main class="card"><div class="step"><span>Question ' + (r.i + 1) + ' of ' + e.qs.length + '</span><button type="button" class="flagb' + (r.flags[q.n] ? ' on' : '') + '" data-ex="flag">' + XI.flag + (r.flags[q.n] ? 'Flagged' : 'Flag') + '</button></div>' + exQHTML(e, q, picked, reveal, r.cross[q.n], f1);
+  if (f1 && !reveal) h += fbHtml('warn', esc(f1) + ' is not it. The answer stays hidden. Go back to the stem, find the clue that rules ' + esc(f1) + ' out, and pick again.', 'Second chance');
   if (reveal){
-    h += q.ans ? fbHtml(picked === q.ans ? 'good' : 'bad', 'The answer is ' + esc(q.ans) + '.' + (q.ai ? ' Keyed by Senior Resident, not the publisher.' : ''), picked === q.ans ? 'Correct' : 'Not quite') : fbHtml('note', 'This PDF has no answer for this question. Work it through with your senior.', 'No key');
+    h += q.ans ? fbHtml(picked === q.ans ? 'good' : 'bad', 'The answer is ' + esc(q.ans) + '.' + (f1 ? (picked === q.ans ? ' You got there on your second chance. Your score counts the first answer.' : ' Two tries. This one is worth working through with your senior.') : '') + (q.ai ? ' Keyed by Senior Resident, not the publisher.' : ''), picked === q.ans ? (f1 ? 'Got it on the second try' : 'Correct') : 'Not quite') : fbHtml('note', 'This PDF has no answer for this question. Work it through with your senior.', 'No key');
     h += '<div class="row"><button type="button" class="btn ghost sm" data-ex="coach">Coach me through it</button>' + (q.page ? '<button type="button" class="btn ghost sm" data-ex="page">Original page</button>' : '') + '</div>';
   }
   h += '<div class="row foot"><button type="button" class="btn ghost" data-ex="prev"' + (r.i === 0 ? ' disabled' : '') + '>Back</button><span class="spacer"></span>';
-  if (r.mode === 'tutor' && picked && !reveal) h += '<button type="button" class="btn" data-ex="check">Check</button>';
+  if (r.mode === 'tutor' && picked && !reveal) h += '<button type="button" class="btn" data-ex="check">' + (f1 ? 'Check second chance' : 'Check') + '</button>';
   else h += r.i < e.qs.length - 1 ? '<button type="button" class="btn" data-ex="next">Next</button>' : '<button type="button" class="btn" data-ex="end">Finish</button>';
-  h += '</div></main><nav class="exnav" aria-label="Questions">' + e.qs.map(function(x, k){ return '<button type="button" class="' + (k === r.i ? 'cur ' : '') + (r.answers[x.n] ? 'ans ' : '') + (r.flags[x.n] ? 'flg' : '') + '" data-ex="goto" data-i="' + k + '">' + (k + 1) + '</button>'; }).join('') + '</nav>';
+  h += '</div></main><nav class="exnav" aria-label="Questions">' + e.qs.map(function(x, k){ return '<button type="button" class="' + (k === r.i ? 'cur ' : '') + (r.answers[x.n] || r.first[x.n] ? 'ans ' : '') + (r.flags[x.n] ? 'flg' : '') + '" data-ex="goto" data-i="' + k + '">' + (k + 1) + '</button>'; }).join('') + '</nav>';
   return h;
 }
 function exResultsHTML(e){
   var a = e.attempts[0]; if (!a) return exStartHTML(e);
-  var s = a.score, miss = e.qs.filter(function(q){ return q.ans && a.answers[q.n] !== q.ans; }).length, blank = e.qs.filter(function(q){ return !a.answers[q.n]; }).length;
+  a.second = a.second || {};
+  var s = a.score, missed = exMissed(e, a), blank = e.qs.filter(function(q){ return !a.answers[q.n]; }).length;
+  var tried = missed.filter(function(q){ return a.second[q.n]; }), won = tried.filter(function(q){ return a.second[q.n].ok; }).length, left = a.sc ? missed.length - tried.length : 0;
   var h = '<div class="qhead"><button type="button" class="lnk" data-ex="home">All exams</button><span class="spacer"></span><button type="button" class="lnk" data-ex="restart">Sit it again</button></div>';
-  h += '<section class="panel exres"><div class="ring" style="--p:' + (s.pct === null ? 0 : s.pct) + '"><b>' + (s.pct === null ? '—' : s.pct + '%') + '</b></div><div><h2>' + esc(e.title) + '</h2><p class="muted">' + (s.pct === null ? 'No answer key, so there is no score. Review each question with your senior.' : s.ok + ' of ' + s.keyed + ' correct') + ' · ' + exClock(a.secs) + (blank ? ' · ' + blank + ' left blank' : '') + '</p>'
+  h += '<section class="panel exres"><div class="ring" style="--p:' + (s.pct === null ? 0 : s.pct) + '"><b>' + (s.pct === null ? '—' : s.pct + '%') + '</b></div><div><h2>' + esc(e.title) + '</h2><p class="muted">' + (s.pct === null ? 'No answer key, so there is no score. Review each question with your senior.' : s.ok + ' of ' + s.keyed + ' correct on the first pass') + ' · ' + exClock(a.secs) + (blank ? ' · ' + blank + ' left blank' : '') + '</p>'
+    + (a.sc && tried.length ? '<p class="scline"><b>' + (s.ok + won) + ' of ' + s.keyed + '</b> after second chance. ' + won + ' of ' + tried.length + ' misses recovered.</p>' : '')
     + (e.key === 'ai' ? '<p class="muted sm">Some answers were keyed by Senior Resident, not the publisher.</p>' : '') + '</div></section>';
+  if (missed.length) h += '<section class="panel revkey"><div><h2>The score is the start. The review is the point.</h2><p class="muted">' + (left ? left + ' missed ' + (left === 1 ? 'question is' : 'questions are') + ' waiting. The answers stay hidden until you have taken your second chance on each one.' : (a.sc ? 'Every miss has had its second chance. Now work the ones you missed twice with your senior.' : 'Go through every miss and ask what clue you read past.')) + '</p></div>' + (left ? '<button type="button" class="btn" data-ex="scnext">Start second chance review</button>' : '') + '</section>';
   if (EX.rev >= 0 && e.qs[EX.rev]){
-    var q = e.qs[EX.rev], picked = a.answers[q.n];
-    h += '<main class="card"><div class="step"><span>Question ' + (EX.rev + 1) + ' of ' + e.qs.length + '</span><em>' + (picked ? 'You picked ' + esc(picked) : 'Left blank') + '</em></div>' + exQHTML(e, q, picked, true)
-      + (q.ans ? '' : fbHtml('note', 'This PDF has no answer for this question.', 'No key'))
-      + '<div class="row"><button type="button" class="btn" data-ex="coach">Coach me through it</button>' + (q.page ? '<button type="button" class="btn ghost" data-ex="page">Original page</button>' : '') + '<span class="spacer"></span><button type="button" class="btn ghost" data-ex="revclose">Close</button></div></main>';
+    var q = e.qs[EX.rev], picked = a.answers[q.n], isMiss = q.ans && picked !== q.ans, sec = a.second[q.n], hold = a.sc && isMiss && !sec;
+    h += '<main class="card"><div class="step"><span>Question ' + (EX.rev + 1) + ' of ' + e.qs.length + '</span><em>' + (picked ? 'You picked ' + esc(picked) : 'Left blank') + (sec ? ', then ' + esc(sec.pick) : '') + '</em></div>';
+    if (hold){
+      h += exQHTML(e, q, EX.pick2, false, null, picked || '-')
+        + fbHtml('warn', (picked ? esc(picked) + ' was not it.' : 'You left this one blank.') + ' The answer stays hidden. Read the stem again and commit to one.', 'Second chance')
+        + '<div class="row"><button type="button" class="btn" data-ex="sccheck"' + (EX.pick2 ? '' : ' disabled') + '>Check second chance</button><span class="spacer"></span><button type="button" class="lnk" data-ex="scskip">Show me the answer</button><button type="button" class="btn ghost" data-ex="revclose">Close</button></div></main>';
+    } else {
+      var nx = a.sc ? exNextRetry(e, a, EX.rev) : -1;
+      h += exQHTML(e, q, sec ? sec.pick : picked, true, null, sec ? picked : null)
+        + (sec ? fbHtml(sec.ok ? 'good' : 'bad', sec.skip ? 'You asked to see the answer. It is ' + esc(q.ans) + '.' : sec.ok ? 'You found ' + esc(q.ans) + ' on your second chance. Now say out loud which clue you read past the first time.' : 'The answer is ' + esc(q.ans) + '. Two misses on one question means this one needs your senior.', sec.skip ? 'Answer shown' : sec.ok ? 'Got it on the second try' : 'Missed twice') : '')
+        + (q.ans ? '' : fbHtml('note', 'This PDF has no answer for this question.', 'No key'))
+        + '<div class="row"><button type="button" class="btn' + (nx >= 0 && !(sec && !sec.ok) ? ' ghost' : '') + '" data-ex="coach">Coach me through it</button>' + (q.page ? '<button type="button" class="btn ghost" data-ex="page">Original page</button>' : '') + '<span class="spacer"></span>' + (nx >= 0 ? '<button type="button" class="btn' + (sec && !sec.ok ? ' ghost' : '') + '" data-ex="scnext">Next miss</button>' : '') + '<button type="button" class="btn ghost" data-ex="revclose">Close</button></div></main>';
+    }
   }
-  h += '<section class="panel"><div class="row"><h2>Review</h2><span class="spacer"></span><span class="muted sm">' + miss + ' to go over</span></div><div class="exgrid">' + e.qs.map(function(q, k){
-    var p = a.answers[q.n], st = !q.ans ? 'nk' : (p === q.ans ? 'ok' : (p ? 'no' : 'bl'));
-    return '<button type="button" class="' + st + (k === EX.rev ? ' cur' : '') + (a.flags[q.n] ? ' flg' : '') + '" data-ex="rev" data-i="' + k + '">' + (k + 1) + '</button>'; }).join('') + '</div><p class="legend"><i class="ok"></i>Correct<i class="no"></i>Missed<i class="bl"></i>Blank<i class="nk"></i>No key</p></section>';
+  h += '<section class="panel"><div class="row"><h2>Review</h2><span class="spacer"></span><span class="muted sm">' + missed.length + ' to go over</span></div><div class="exgrid">' + e.qs.map(function(q, k){
+    var p = a.answers[q.n], st = !q.ans ? 'nk' : (p === q.ans ? 'ok' : (a.second[q.n] && a.second[q.n].ok ? 'sc' : (p ? 'no' : 'bl')));
+    return '<button type="button" class="' + st + (k === EX.rev ? ' cur' : '') + (a.flags[q.n] ? ' flg' : '') + '" data-ex="rev" data-i="' + k + '">' + (k + 1) + '</button>'; }).join('') + '</div><p class="legend"><i class="ok"></i>Correct<i class="sc"></i>Second chance<i class="no"></i>Missed<i class="bl"></i>Blank<i class="nk"></i>No key</p></section>';
   return h;
 }
 function examHTML(){
@@ -259,17 +281,29 @@ stage.addEventListener('click', function(ev){
   else if (act === 'del'){ exams = exams.filter(function(x){ return x.id !== el.dataset.id; }); saveExams(); idbDel(el.dataset.id); }
   else if (act === 'home'){ EX.screen = 'home'; EX.msg = ''; }
   else if (act === 'mode'){ EX.mode = el.dataset.m; }
+  else if (act === 'sc'){ EX.sc = !EX.sc; try { localStorage.setItem('sr_second', EX.sc ? '1' : '0'); } catch(x){} }
+  else if (!r && e && e.attempts[0] && (act === 'pick' || act === 'sccheck' || act === 'scskip' || act === 'scnext')){
+    var a0 = e.attempts[0], qv = e.qs[EX.rev]; a0.second = a0.second || {};
+    if (act === 'scnext'){ var ni = exNextRetry(e, a0, EX.rev); EX.pick2 = ''; if (ni >= 0){ EX.rev = ni; renderStage(); var c2 = stage.querySelector('main.card'); if (c2) c2.scrollIntoView({ block:'start', behavior:'smooth' }); return; } }
+    else if (qv && act === 'pick'){ EX.pick2 = EX.pick2 === el.dataset.k ? '' : el.dataset.k; }
+    else if (qv && act === 'sccheck' && EX.pick2){ a0.second[qv.n] = { pick:EX.pick2, ok:EX.pick2 === qv.ans }; EX.pick2 = ''; saveExams(); }
+    else if (qv && act === 'scskip'){ a0.second[qv.n] = { pick:'', ok:false, skip:true }; EX.pick2 = ''; saveExams(); }
+  }
   else if (act === 'key'){ if (e && proGate()) aiKey(e); return; }
   else if (act === 'start' || act === 'restart'){ exStart(); return; }
   else if (act === 'results'){ EX.screen = 'results'; }
-  else if (act === 'rev'){ EX.rev = +el.dataset.i; renderStage(); var cd = stage.querySelector('main.card'); if (cd) cd.scrollIntoView({ block:'start', behavior:'smooth' }); return; }
+  else if (act === 'rev'){ EX.rev = +el.dataset.i; EX.pick2 = ''; renderStage(); var cd = stage.querySelector('main.card'); if (cd) cd.scrollIntoView({ block:'start', behavior:'smooth' }); return; }
   else if (act === 'revclose'){ EX.rev = -1; }
   else if (act === 'coach'){ var q0 = r ? e.qs[r.i] : e.qs[EX.rev]; if (q0) coachFromExam(e, q0); return; }
   else if (act === 'page'){ var q1 = r ? e.qs[r.i] : e.qs[EX.rev]; if (q1) showPage(e, q1.page); return; }
   else if (r && e){
     var q = e.qs[r.i];
-    if (act === 'pick'){ if (r.mode === 'tutor' && r.shown[q.n]) return; r.answers[q.n] = r.answers[q.n] === el.dataset.k ? undefined : el.dataset.k; if (!r.answers[q.n]) delete r.answers[q.n]; }
-    else if (act === 'check'){ r.shown[q.n] = true; }
+    if (act === 'pick'){ if (r.mode === 'tutor' && r.shown[q.n]) return; if (r.first[q.n] === el.dataset.k) return; r.answers[q.n] = r.answers[q.n] === el.dataset.k ? undefined : el.dataset.k; if (!r.answers[q.n]) delete r.answers[q.n]; }
+    else if (act === 'check'){
+      var pk = r.answers[q.n];
+      if (r.sc && q.ans && pk && pk !== q.ans && !r.first[q.n]){ r.first[q.n] = pk; delete r.answers[q.n]; }
+      else { if (r.first[q.n]) r.second[q.n] = { pick:pk, ok:pk === q.ans }; r.shown[q.n] = true; }
+    }
     else if (act === 'flag'){ r.flags[q.n] = !r.flags[q.n]; if (!r.flags[q.n]) delete r.flags[q.n]; }
     else if (act === 'next'){ r.i = Math.min(e.qs.length - 1, r.i + 1); window.scrollTo({ top:0 }); }
     else if (act === 'prev'){ r.i = Math.max(0, r.i - 1); window.scrollTo({ top:0 }); }
@@ -282,7 +316,7 @@ document.addEventListener('keydown', function(ev){
   if (view !== 'exam' || EX.screen !== 'run' || !EX.run || ev.metaKey || ev.ctrlKey || ev.altKey) return;
   var tg = ev.target; if (tg && /^(INPUT|TEXTAREA)$/.test(tg.tagName)) return;
   var e = exGet(), r = EX.run, q = e.qs[r.i];
-  if (/^[a-j]$/i.test(ev.key)){ var k = ev.key.toUpperCase(); if (q.opts.some(function(o){ return o.k === k; }) && !(r.mode === 'tutor' && r.shown[q.n])){ r.answers[q.n] = k; renderStage(); } }
+  if (/^[a-j]$/i.test(ev.key)){ var k = ev.key.toUpperCase(); if (q.opts.some(function(o){ return o.k === k; }) && !(r.mode === 'tutor' && r.shown[q.n]) && r.first[q.n] !== k){ r.answers[q.n] = k; renderStage(); } }
   else if (ev.key === 'Enter' || ev.key === 'ArrowRight'){ var b = stage.querySelector('[data-ex="check"],[data-ex="next"]'); if (b){ ev.preventDefault(); b.click(); } }
   else if (ev.key === 'ArrowLeft'){ var p = stage.querySelector('[data-ex="prev"]:not([disabled])'); if (p) p.click(); }
 });

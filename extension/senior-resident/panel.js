@@ -14,13 +14,13 @@
   function say(t){ msg.textContent = t || ''; msg.title = t || ''; toCoach({ type: 'sr-status', text: t || '' }); }
   function toCoach(d){ if (ready) coach.contentWindow.postMessage(d, ORIGIN); else queue.push(d); }
   function blob(u){ var p = u.split(','), mime = (p[0].match(/:(.*?);/) || [])[1] || 'image/png', b = atob(p[1]), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return new Blob([a], { type: mime }); }
-  function doGrab(manual){
+  function doGrab(manual, reread){
     say('Reading the question');
     chrome.runtime.sendMessage({ t: 'grab', manual: !!manual }, function(q){
       if (chrome.runtime.lastError || !q){ say('Could not reach the page. Refresh it once.'); return; }
       if (q.err){ say(manual ? q.err : ''); return; }
       msg.textContent = (q.src || 'Question') + (q.num ? ' · Q' + q.num : '') + (q.qid && !/^h/.test(q.qid) ? ' · ID ' + q.qid : '') + (q.shot ? ' · from a screenshot' : '');
-      toCoach({ type: 'sr-question', qid: q.qid, num: q.num || '', src: q.src, text: q.text, images: (q.images || []).map(blob) });
+      toCoach({ type: 'sr-question', qid: q.qid, num: q.num || '', struck: q.struck || [], reread: !!reread, src: q.src, text: q.text, images: (q.images || []).map(blob) });
     });
   }
   setTimeout(function(){ doGrab(false); }, 300);
@@ -34,6 +34,6 @@
     if (e.source !== coach.contentWindow || e.origin !== ORIGIN) return;
     var d = e.data || {};
     if (d.type === 'sr-ready'){ ready = true; queue.splice(0).forEach(function(x){ coach.contentWindow.postMessage(x, ORIGIN); }); }
-    if (d.type === 'sr-grab') doGrab(true);
+    if (d.type === 'sr-grab') doGrab(true, !!d.reread);
   });
 })();

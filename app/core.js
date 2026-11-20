@@ -38,6 +38,7 @@ function buildPrompt(c){
   if (LEVEL_RULES[c.level||LEVEL]) p += '\n' + LEVEL_RULES[c.level||LEVEL];
   p += '\n\nINPUT: ' + (c.files.length ? c.files.length + ' image(s) are attached.' : 'No images.');
   if (c.text) p += '\nTyped question text from the student:\n' + c.text;
+  if (c.struck && c.struck.length) p += '\n\nNARROWING MODE. The student has ALREADY crossed out these answer choices on their own: ' + c.struck.join(' | ') + '\nTreat those as ruled out and never ask about them. The student is stuck between the choices that are still open. Build the 3 reasoning steps ONLY around separating the open choices: each step tests one specific thing that one open choice predicts and another does not (the classic finding, the timing, a lab value, the mechanism or the first-line management), then points back to what the stem actually says. Do NOT output the elimination step (type "elim") at all. The final step lists only the open choices. If the correct answer is one the student crossed out, do not reveal that in the steps, include that choice among the options of the final step as the one to keep in play, and say in the reveal headline that they had crossed it out.';
   return p;
 }
 
@@ -194,7 +195,7 @@ function proc(c, line){
   progress(c);
 }
 function newCase(o){
-  return Object.assign({ id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:'', qid:'', num:'', src:'', files:[], text:'', level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false, queued:false, ts:Date.now() }, o);
+  return Object.assign({ id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:'', qid:'', num:'', struck:[], src:'', files:[], text:'', level:LEVEL, meta:null, steps:[], reveal:null, st:fresh(), chat:[], chatBusy:false, error:null, generating:false, queued:false, ts:Date.now() }, o);
 }
 async function gen(c){
   if (!canStart()){ c.error = { code:'rate_limited' }; c.generating = false; if (cases[cur]===c) renderStage(); done(c); return; }
@@ -403,7 +404,7 @@ async function persistNow(){
   for (var i=0;i<keep.length;i++){
     var c = keep[i];
     if (!c.filesData) c.filesData = await Promise.all((c.files||[]).map(function(f){ return b64(f.blob); }));
-    out.push({ id:c.id, title:c.title, qid:c.qid, num:c.num, src:c.src, text:c.text, level:c.level, meta:c.meta, steps:c.steps, reveal:c.reveal, st:c.st, chat:c.chat, error:c.error, generating:c.generating, saved:c.saved, tries:c.tries, ts:c.ts, filesData:c.filesData });
+    out.push({ id:c.id, title:c.title, qid:c.qid, num:c.num, struck:c.struck||[], src:c.src, text:c.text, level:c.level, meta:c.meta, steps:c.steps, reveal:c.reveal, st:c.st, chat:c.chat, error:c.error, generating:c.generating, saved:c.saved, tries:c.tries, ts:c.ts, filesData:c.filesData });
   }
   var j; try { j = JSON.stringify({ cur: cases[cur] ? cases[cur].id : '', cases: out }); } catch(e){ return; }
   if (j === lastSaved) return;

@@ -37,20 +37,29 @@
     return '';
   }
   function uwStem(){ return document.querySelector('.question-content') || document.querySelector('#questionText') || document.querySelector('[class*="question-content"]') || document.querySelector('[id*="questionText"]'); }
-  function radioChoices(){
+  function isStruck(row){
+    if (!row) return false;
+    var els = [row].concat(Array.prototype.slice.call(row.querySelectorAll('*'), 0, 40));
+    for (var i = 0; i < els.length; i++){ try { if ((getComputedStyle(els[i]).textDecorationLine || '').indexOf('line-through') >= 0) return true; } catch(e){} }
+    return false;
+  }
+  function choiceRows(){
     var out = [];
     document.querySelectorAll('input[type=radio]').forEach(function(r){
-      var el = r, best = '';
+      var el = r, best = '', row = null;
       for (var k = 0; k < 7 && el.parentElement; k++){
         el = el.parentElement;
         if (el.querySelectorAll('input[type=radio]').length > 1) break;
-        var t = clean(el.innerText); if (t.length > 1) best = t;
+        var t = clean(el.innerText); if (t.length > 1){ best = t; row = el; }
       }
       best = best.replace(/\s*\(\d{1,3}%\)\s*$/, '').replace(/\s*\n\s*/g, ' ');
-      if (best) out.push(best);
+      if (best) out.push({ t:best, struck:isStruck(row) });
     });
-    return out.map(function(t, i){ return /^[A-J][.)]\s/.test(t) ? t : String.fromCharCode(65 + i) + '. ' + t; });
+    out.forEach(function(o, i){ if (!/^[A-J][.)]\s/.test(o.t)) o.t = String.fromCharCode(65 + i) + '. ' + o.t; });
+    return out;
   }
+  function radioChoices(){ return choiceRows().map(function(o){ return o.t; }); }
+  function struckChoices(){ return choiceRows().filter(function(o){ return o.struck; }).map(function(o){ return o.t; }); }
 
   /* Any other question bank: find the answer choices, then the block that holds them and the stem */
   function choiceEls(){
@@ -106,7 +115,7 @@
       if (OFF){ reply({ text: '', src: SRC }); return; }
       grab().then(async function(q){
         if (!q){ reply({ text: '', src: SRC }); return; }
-        reply({ qid: q.qid, num: itemNo(), src: q.src, text: q.text, images: await Promise.all(q.images.map(dataUrl)) });
+        reply({ qid: q.qid, num: itemNo(), struck: struckChoices(), src: q.src, text: q.text, images: await Promise.all(q.images.map(dataUrl)) });
       }, function(){ reply({ text: '', src: SRC }); });
       return true;
     }

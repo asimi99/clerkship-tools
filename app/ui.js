@@ -199,7 +199,8 @@ function cardHTML(c){
 }
 function caseHTML(c){
   var src = [c.src, c.title].filter(Boolean).join(' · ');
-  return '<div class="qhead">'+(src?'<span class="src">'+esc(src)+'</span>':'')+'<span class="lv">'+esc((LEVELS.filter(function(l){return l[0]===(c.level||LEVEL)})[0]||LEVELS[0])[1])+'</span><span class="spacer"></span><button type="button" class="lnk" data-act="closecase">Close</button></div>'
+  var nar = (c.struck && c.struck.length) ? '<span class="lv nar">'+c.struck.length+' crossed out</span>' : '';
+  return '<div class="qhead">'+(src?'<span class="src">'+esc(src)+'</span>':'')+nar+'<span class="lv">'+esc((LEVELS.filter(function(l){return l[0]===(c.level||LEVEL)})[0]||LEVELS[0])[1])+'</span><span class="spacer"></span>'+(EMBED&&c.qid?'<button type="button" class="lnk" data-act="reread" title="Reads which choices you have crossed out in your question bank and rebuilds the steps around the ones left">Re-read my cross-outs</button>':'')+'<button type="button" class="lnk" data-act="closecase">Close</button></div>'
     + stemHTML(c) + '<div class="bar" id="bar" aria-hidden="true">'+barHTML(c)+'</div><main class="card" id="card">'+cardHTML(c)+'</main>';
 }
 
@@ -445,6 +446,7 @@ stage.addEventListener('click', async function(e){
   }
   var c2 = cases[cur]; if (!c2) return;
   var st = c2.st, i = st.i;
+  if (act==='reread'){ statusMsg = ''; if (window.parent!==window) window.parent.postMessage({ type:'sr-grab', reread:true }, '*'); el.textContent = 'Reading'; return; }
   if (act==='closecase'){ if (c2.ctl) c2.ctl.abort(); cases.splice(cur, 1); cur = Math.min(cur, cases.length-1); renderStage(); persist(); return; }
   if (act==='cross'){ e.stopPropagation(); crossToggle(c2, i, +el.dataset.k); return; }
   if (act==='pick') pick(c2, +el.dataset.k);
@@ -485,12 +487,21 @@ window.addEventListener('message', async function(e){
   if (d.type==='sr-status'){ statusMsg = String(d.text||''); if (view==='coach' && cur===-1) renderStage(); return; }
   if (d.type!=='sr-question') return;
   statusMsg = '';
+  var struck = (Array.isArray(d.struck) ? d.struck : []).slice(0, 8).map(function(x){ return String(x).slice(0, 200); });
   if (d.qid){
     var ex = cases.findIndex(function(c){ return c.qid===d.qid; });
-    if (ex>=0){ if (d.num) cases[ex].num = String(d.num); view = 'coach'; cur = ex; renderAll(); if (!cases[ex].generating) done(cases[ex]); return; }
+    if (ex>=0){
+      var oc = cases[ex]; if (d.num) oc.num = String(d.num);
+      view = 'coach'; cur = ex;
+      if (d.reread && !oc.generating && struck.join('|') !== (oc.struck||[]).join('|')){
+        oc.struck = struck; oc.steps = []; oc.meta = null; oc.reveal = null; oc.st = fresh(); oc.error = null; oc.saved = false; renderAll(); gen(oc); return;
+      }
+      renderAll(); if (d.reread){ statusMsg = ''; var rb = stage.querySelector('[data-act="reread"]'); if (rb) rb.textContent = struck.length ? 'Same cross-outs as before' : 'Nothing crossed out yet'; }
+      if (!oc.generating) done(oc); return;
+    }
   }
   var files = (d.images||[]).slice(0, 4).map(function(b){ return { blob:b, url:URL.createObjectURL(b) }; });
-  var c = newCase({ qid:d.qid||'', num:String(d.num||''), src:d.src||'', files:files, text:d.text||'' });
+  var c = newCase({ qid:d.qid||'', num:String(d.num||''), struck:struck, src:d.src||'', files:files, text:d.text||'' });
   cases.push(c); view = 'coach'; cur = cases.length-1; renderAll(); window.scrollTo({top:0});
   await gen(c);
 });
