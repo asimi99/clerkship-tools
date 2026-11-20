@@ -10,7 +10,7 @@ var IC = {
   x:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   pager:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="14" height="11" rx="2.5"/><path d="M6.5 13h7M6.5 16.5h4"/><path d="M16 5.5a5 5 0 0 1 4.5 4.5M16 2a8.5 8.5 0 0 1 8 8" transform="translate(-1.5 .5)"/></svg>',
   bolt:'<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>',
-  logo:'<svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f7ee0"/><stop offset="1" stop-color="#123f86"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#lg)"/><path d="M17 29.5 32 17l15 12.5" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 43.5 32 31l15 12.5" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".62"/><circle cx="32" cy="50.5" r="3.4" fill="#fff" opacity=".9"/></svg>'
+  logo:'<svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b8cf0"/><stop offset="1" stop-color="#0f3a80"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#lg)"/><path d="M25 11h14a3 3 0 0 1 3 3v8h8a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3h-8v8a3 3 0 0 1-3 3H25a3 3 0 0 1-3-3v-8h-8a3 3 0 0 1-3-3V25a3 3 0 0 1 3-3h8v-8a3 3 0 0 1 3-3z" fill="#fff"/><path d="M24 31l8-7 8 7M24 40l8-7 8 7" fill="none" stroke="#1a5fb4" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 function fbHtml(cls, text, lab){ return '<div class="fb '+cls+'"><b>'+esc(lab||LABEL[cls])+'</b>'+text+'</div>'; }
 function waitHTML(t, stop){ return '<div class="wait"><span class="dots"><i></i><i></i><i></i></span><span>'+esc(t)+'</span>'+(stop?'<span class="spacer"></span><button type="button" class="btn ghost sm" data-act="stop">Stop</button>':'')+'</div>'; }
@@ -29,6 +29,7 @@ function renderTop(){
     + pillHTML()
     + '<nav class="nav" aria-label="Sections">'
     + '<button type="button" class="ib'+(view==='coach'?' on':'')+'" data-go="new" title="New question" aria-label="New question">'+IC.plus+'</button>'
+    + (EMBED?'':'<button type="button" class="ib'+(view==='exam'?' on':'')+'" data-go="exam" title="Exam mode" aria-label="Exam mode"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></button>')
     + '<button type="button" class="ib'+(view==='review'?' on':'')+'" data-go="review" title="Review" aria-label="Review">'+IC.chart+'</button>'
     + '<button type="button" class="ib'+(view==='account'?' on':'')+(u?' av':'')+'" data-go="account" title="Account" aria-label="Account">'+(u?ini:IC.user)+'</button>'
     + '</nav>';
@@ -294,7 +295,7 @@ async function mountGoogle(){
   } catch(e){ fallback(); }
 }
 function pricingHTML(){
-  var perks = [(CFG.PRO_DAILY||40)+' questions a day, a full block','Hardest mode at exam pace','Extra help steps when you are stuck','Follow-up questions with your senior','Pearl export to Anki'];
+  var perks = [(CFG.PRO_DAILY||40)+' questions a day, a full block','Exam mode: any PDF of questions becomes a timed exam','Hardest mode at exam pace','Extra help steps when you are stuck','Follow-up questions with your senior','Pearl export to Anki'];
   var live = billingLive() && CFG.STRIPE_LINK;
   return '<div class="sheet" role="dialog" aria-label="Senior Resident Pro"><button type="button" class="close" data-act="closemodal" aria-label="Close">×</button>'
     + '<div class="ph2">'+IC.logo+'<h2>Senior Resident Pro</h2></div><ul class="perks">'+perks.map(function(p){ return '<li>'+IC.check+esc(p)+'</li>'; }).join('')+'</ul>'
@@ -325,6 +326,7 @@ function progress(c){
 function renderStage(){
   renderTabs();
   if (view==='review'){ stage.innerHTML = reviewHTML(); return; }
+  if (view==='exam'){ stage.innerHTML = examHTML(); return; }
   if (view==='account'){ stage.innerHTML = accountHTML(); mountGoogle(); return; }
   if (cur===-1 || !cases[cur]){ cur = -1; stage.innerHTML = uploadHTML(); return; }
   var c = cases[cur]; c.revealShown = false;
